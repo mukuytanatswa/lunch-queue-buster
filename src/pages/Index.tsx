@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -200,7 +199,17 @@ const Index = () => {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {getVendorsByCategory('quickBites').slice(0, 3).map(vendor => (
-                      <VendorCard key={vendor.id} vendor={vendor} />
+                      <VendorCard
+                        key={vendor.id}
+                        id={vendor.id}
+                        name={vendor.name}
+                        image={vendor.image}
+                        cuisineType={vendor.cuisineType}
+                        rating={vendor.rating}
+                        deliveryTime={vendor.deliveryTime}
+                        location={vendor.location}
+                        featured={vendor.featured}
+                      />
                     ))}
                   </div>
                 </div>
@@ -213,7 +222,17 @@ const Index = () => {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {getVendorsByCategory('budget').slice(0, 3).map(vendor => (
-                      <VendorCard key={vendor.id} vendor={vendor} />
+                      <VendorCard
+                        key={vendor.id}
+                        id={vendor.id}
+                        name={vendor.name}
+                        image={vendor.image}
+                        cuisineType={vendor.cuisineType}
+                        rating={vendor.rating}
+                        deliveryTime={vendor.deliveryTime}
+                        location={vendor.location}
+                        featured={vendor.featured}
+                      />
                     ))}
                   </div>
                 </div>
@@ -226,7 +245,17 @@ const Index = () => {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {getVendorsByCategory('trending').slice(0, 3).map(vendor => (
-                      <VendorCard key={vendor.id} vendor={vendor} />
+                      <VendorCard
+                        key={vendor.id}
+                        id={vendor.id}
+                        name={vendor.name}
+                        image={vendor.image}
+                        cuisineType={vendor.cuisineType}
+                        rating={vendor.rating}
+                        deliveryTime={vendor.deliveryTime}
+                        location={vendor.location}
+                        featured={vendor.featured}
+                      />
                     ))}
                   </div>
                 </div>
@@ -239,7 +268,17 @@ const Index = () => {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {getVendorsByCategory('groupDeals').slice(0, 3).map(vendor => (
-                      <VendorCard key={vendor.id} vendor={vendor} />
+                      <VendorCard
+                        key={vendor.id}
+                        id={vendor.id}
+                        name={vendor.name}
+                        image={vendor.image}
+                        cuisineType={vendor.cuisineType}
+                        rating={vendor.rating}
+                        deliveryTime={vendor.deliveryTime}
+                        location={vendor.location}
+                        featured={vendor.featured}
+                      />
                     ))}
                   </div>
                 </div>
@@ -248,7 +287,17 @@ const Index = () => {
               <TabsContent value="quickBites">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {getVendorsByCategory('quickBites').map(vendor => (
-                    <VendorCard key={vendor.id} vendor={vendor} />
+                    <VendorCard
+                      key={vendor.id}
+                      id={vendor.id}
+                      name={vendor.name}
+                      image={vendor.image}
+                      cuisineType={vendor.cuisineType}
+                      rating={vendor.rating}
+                      deliveryTime={vendor.deliveryTime}
+                      location={vendor.location}
+                      featured={vendor.featured}
+                    />
                   ))}
                 </div>
                 {getVendorsByCategory('quickBites').length === 0 && (
@@ -261,7 +310,17 @@ const Index = () => {
               <TabsContent value="budget">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {getVendorsByCategory('budget').map(vendor => (
-                    <VendorCard key={vendor.id} vendor={vendor} />
+                    <VendorCard
+                      key={vendor.id}
+                      id={vendor.id}
+                      name={vendor.name}
+                      image={vendor.image}
+                      cuisineType={vendor.cuisineType}
+                      rating={vendor.rating}
+                      deliveryTime={vendor.deliveryTime}
+                      location={vendor.location}
+                      featured={vendor.featured}
+                    />
                   ))}
                 </div>
                 {getVendorsByCategory('budget').length === 0 && (
@@ -274,7 +333,17 @@ const Index = () => {
               <TabsContent value="trending">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {getVendorsByCategory('trending').map(vendor => (
-                    <VendorCard key={vendor.id} vendor={vendor} />
+                    <VendorCard
+                      key={vendor.id}
+                      id={vendor.id}
+                      name={vendor.name}
+                      image={vendor.image}
+                      cuisineType={vendor.cuisineType}
+                      rating={vendor.rating}
+                      deliveryTime={vendor.deliveryTime}
+                      location={vendor.location}
+                      featured={vendor.featured}
+                    />
                   ))}
                 </div>
                 {getVendorsByCategory('trending').length === 0 && (
@@ -287,7 +356,17 @@ const Index = () => {
               <TabsContent value="groupDeals">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {getVendorsByCategory('groupDeals').map(vendor => (
-                    <VendorCard key={vendor.id} vendor={vendor} />
+                    <VendorCard
+                      key={vendor.id}
+                      id={vendor.id}
+                      name={vendor.name}
+                      image={vendor.image}
+                      cuisineType={vendor.cuisineType}
+                      rating={vendor.rating}
+                      deliveryTime={vendor.deliveryTime}
+                      location={vendor.location}
+                      featured={vendor.featured}
+                    />
                   ))}
                 </div>
                 {getVendorsByCategory('groupDeals').length === 0 && (
