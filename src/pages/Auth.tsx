@@ -126,24 +126,6 @@ const Auth = () => {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => handleOAuthSignIn('facebook')}
-                  disabled={isLoading}
-                >
-                  <Icons.facebook className="mr-2 h-4 w-4" />
-                  Facebook
-                </Button>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => handleOAuthSignIn('twitter')}
-                  disabled={isLoading}
-                >
-                  <Icons.twitter className="mr-2 h-4 w-4" />
-                  Twitter
-                </Button>
-                <Button
-                  variant="outline"
                   onClick={() => handleOAuthSignIn('apple')}
                   disabled={isLoading}
                 >
@@ -237,11 +219,11 @@ const Auth = () => {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => handleOAuthSignIn('facebook')}
+                  onClick={() => handleOAuthSignIn('apple')}
                   disabled={isLoading}
                 >
-                  <Icons.facebook className="mr-2 h-4 w-4" />
-                  Facebook
+                  <Icons.apple className="mr-2 h-4 w-4" />
+                  Apple
                 </Button>
               </div>
             </TabsContent>
