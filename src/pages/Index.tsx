@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import HeroSection from '@/components/HeroSection';
@@ -14,6 +15,15 @@ import { Badge } from '@/components/ui/badge';
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCampus, setSelectedCampus] = useState('all');
+  const { user, profile } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect to onboarding if user is logged in but hasn't completed onboarding
+  useEffect(() => {
+    if (user && profile && !profile.onboarding_completed) {
+      navigate('/onboarding');
+    }
+  }, [user, profile, navigate]);
   
   // Mock data for featured vendors
   const vendors = [

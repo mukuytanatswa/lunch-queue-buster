@@ -1,14 +1,17 @@
 
 import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { ShoppingCart, User, Menu, X } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { ShoppingCart, User, Menu, X, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, profile, signOut } = useAuth();
 
   // Handle scroll effect
   useEffect(() => {
@@ -67,20 +70,49 @@ const Navbar = () => {
 
         {/* Desktop Action Buttons */}
         <div className="hidden md:flex items-center space-x-4">
-          <Link to="/cart">
-            <Button variant="ghost" size="icon" className="relative">
-              <ShoppingCart className="h-5 w-5" />
-              <span className="absolute -top-1 -right-1 bg-brand-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                0
+          {user ? (
+            <>
+              <Link to="/cart">
+                <Button variant="ghost" size="icon" className="relative">
+                  <ShoppingCart className="h-5 w-5" />
+                  <span className="absolute -top-1 -right-1 bg-brand-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    0
+                  </span>
+                </Button>
+              </Link>
+              <Link to="/profile">
+                <Button variant="ghost" size="icon">
+                  <User className="h-5 w-5" />
+                </Button>
+              </Link>
+              <span className="text-sm text-foreground/80">
+                Hi, {profile?.first_name || 'User'}
               </span>
-            </Button>
-          </Link>
-          <Link to="/profile">
-            <Button variant="ghost" size="icon">
-              <User className="h-5 w-5" />
-            </Button>
-          </Link>
-          <Button className="bg-brand-500 hover:bg-brand-600">Sign In</Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => signOut()}
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button 
+                variant="ghost"
+                onClick={() => navigate('/auth')}
+              >
+                Sign In
+              </Button>
+              <Button 
+                className="bg-brand-500 hover:bg-brand-600"
+                onClick={() => navigate('/auth')}
+              >
+                Get Started
+              </Button>
+            </>
+          )}
         </div>
 
         {/* Mobile Menu Trigger */}
@@ -110,21 +142,42 @@ const Navbar = () => {
                 {link.name}
               </Link>
             ))}
-            <div className="pt-2 flex items-center space-x-4">
-              <Link to="/cart" className="flex-1">
-                <Button variant="outline" className="w-full justify-start">
-                  <ShoppingCart className="h-5 w-5 mr-2" />
-                  Cart (0)
+            {user ? (
+              <>
+                <div className="pt-2 flex items-center space-x-4">
+                  <Link to="/cart" className="flex-1">
+                    <Button variant="outline" className="w-full justify-start">
+                      <ShoppingCart className="h-5 w-5 mr-2" />
+                      Cart (0)
+                    </Button>
+                  </Link>
+                  <Link to="/profile" className="flex-1">
+                    <Button variant="outline" className="w-full justify-start">
+                      <User className="h-5 w-5 mr-2" />
+                      Profile
+                    </Button>
+                  </Link>
+                </div>
+                <div className="pt-2 text-sm text-foreground/80 text-center">
+                  Hi, {profile?.first_name || 'User'}
+                </div>
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => signOut()}
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign Out
                 </Button>
-              </Link>
-              <Link to="/profile" className="flex-1">
-                <Button variant="outline" className="w-full justify-start">
-                  <User className="h-5 w-5 mr-2" />
-                  Profile
-                </Button>
-              </Link>
-            </div>
-            <Button className="bg-brand-500 hover:bg-brand-600 w-full">Sign In</Button>
+              </>
+            ) : (
+              <Button 
+                className="bg-brand-500 hover:bg-brand-600 w-full"
+                onClick={() => navigate('/auth')}
+              >
+                Sign In
+              </Button>
+            )}
           </nav>
         </div>
       )}
