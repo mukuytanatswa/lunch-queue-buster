@@ -12,6 +12,10 @@ const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
+  
+  // Debug logging
+  console.log('Navbar - User:', user?.email);
+  console.log('Navbar - Profile:', profile);
 
   // Handle scroll effect
   useEffect(() => {

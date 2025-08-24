@@ -52,6 +52,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const fetchProfile = async (userId: string) => {
     try {
+      console.log('Fetching profile for user:', userId);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -63,6 +64,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         return;
       }
 
+      console.log('Profile data fetched:', data);
       setProfile(data);
     } catch (error) {
       console.error('Unexpected error fetching profile:', error);
