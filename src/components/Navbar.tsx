@@ -32,12 +32,48 @@ const Navbar = () => {
     setIsMobileMenuOpen(false);
   }, [location]);
 
-  const navLinks = [
-    { name: 'Home', path: '/' },
-    { name: 'Vendors', path: '/vendors' },
-    { name: 'Orders', path: '/orders' },
-    { name: 'About', path: '/about' }
-  ];
+  // Dynamic nav links based on user role
+  const getNavLinks = () => {
+    const baseLinks = [
+      { name: 'Home', path: '/' },
+      { name: 'Vendors', path: '/vendors' },
+      { name: 'About', path: '/about' }
+    ];
+
+    if (!user) return baseLinks;
+
+    // Add role-specific links
+    switch (profile?.role) {
+      case 'student':
+        return [
+          ...baseLinks,
+          { name: 'Orders', path: '/orders' }
+        ];
+      case 'vendor':
+        return [
+          { name: 'Home', path: '/' },
+          { name: 'Dashboard', path: '/vendor-dashboard' },
+          { name: 'About', path: '/about' }
+        ];
+      case 'driver':
+        return [
+          { name: 'Home', path: '/' },
+          { name: 'Dashboard', path: '/driver-dashboard' },
+          { name: 'About', path: '/about' }
+        ];
+      case 'admin':
+        return [
+          { name: 'Home', path: '/' },
+          { name: 'Admin Panel', path: '/admin-dashboard' },
+          { name: 'Vendors', path: '/vendors' },
+          { name: 'About', path: '/about' }
+        ];
+      default:
+        return baseLinks;
+    }
+  };
+
+  const navLinks = getNavLinks();
 
   return (
     <header 
