@@ -11,8 +11,9 @@ import { Icons } from '@/components/ui/icons';
 import { Separator } from '@/components/ui/separator';
 
 const Auth = () => {
-  const { user, signUp, signIn, signInWithOAuth, loading } = useAuth();
+  const { user, signUp, signIn, signInWithOAuth, resetPassword, loading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   // Redirect if already authenticated
   if (user && !loading) {
@@ -52,6 +53,17 @@ const Auth = () => {
     setIsLoading(false);
   };
 
+  const handleForgotPassword = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get('email') as string;
+
+    await resetPassword(email);
+    setIsLoading(false);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -77,32 +89,87 @@ const Auth = () => {
             </TabsList>
 
             <TabsContent value="signin" className="space-y-4">
-              <form onSubmit={handleSignIn} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signin-email">Email</Label>
-                  <Input
-                    id="signin-email"
-                    name="email"
-                    type="email"
-                    placeholder="Enter your email"
-                    required
-                  />
+              {!showForgotPassword ? (
+                <>
+                  <form onSubmit={handleSignIn} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="signin-email">Email</Label>
+                      <Input
+                        id="signin-email"
+                        name="email"
+                        type="email"
+                        placeholder="Enter your email"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="signin-password">Password</Label>
+                        <Button
+                          variant="link"
+                          className="p-0 h-auto text-sm text-primary hover:underline"
+                          onClick={() => setShowForgotPassword(true)}
+                          type="button"
+                        >
+                          Forgot password?
+                        </Button>
+                      </div>
+                      <Input
+                        id="signin-password"
+                        name="password"
+                        type="password"
+                        placeholder="Enter your password"
+                        required
+                      />
+                    </div>
+                    <Button type="submit" className="w-full" disabled={isLoading}>
+                      {isLoading && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
+                      Sign In
+                    </Button>
+                  </form>
+                  
+                  <div className="text-center text-sm text-muted-foreground">
+                    <p>Don't have an account? Please check your email to confirm your account after signing up.</p>
+                  </div>
+                </>
+              ) : (
+                <div className="space-y-4">
+                  <div className="text-center space-y-2">
+                    <h3 className="text-lg font-semibold">Reset your password</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Enter your email address and we'll send you a link to reset your password.
+                    </p>
+                  </div>
+                  
+                  <form onSubmit={handleForgotPassword} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="reset-email">Email</Label>
+                      <Input
+                        id="reset-email"
+                        name="email"
+                        type="email"
+                        placeholder="Enter your email"
+                        required
+                      />
+                    </div>
+                    <Button type="submit" className="w-full" disabled={isLoading}>
+                      {isLoading && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
+                      Send Reset Link
+                    </Button>
+                  </form>
+                  
+                  <div className="text-center">
+                    <Button
+                      variant="link"
+                      className="p-0 h-auto text-sm"
+                      onClick={() => setShowForgotPassword(false)}
+                      type="button"
+                    >
+                      Back to sign in
+                    </Button>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signin-password">Password</Label>
-                  <Input
-                    id="signin-password"
-                    name="password"
-                    type="password"
-                    placeholder="Enter your password"
-                    required
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
-                  Sign In
-                </Button>
-              </form>
+              )}
 
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">

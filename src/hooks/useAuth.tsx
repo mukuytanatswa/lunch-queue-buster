@@ -26,6 +26,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signInWithOAuth: (provider: 'google' | 'facebook' | 'twitter' | 'apple') => Promise<{ error: any }>;
   signOut: () => Promise<{ error: any }>;
+  resetPassword: (email: string) => Promise<{ error: any }>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ error: any }>;
 }
 
@@ -237,6 +238,37 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
+  const resetPassword = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth`,
+      });
+
+      if (error) {
+        toast({
+          title: "Password reset failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Password reset email sent",
+          description: "Check your email for a link to reset your password.",
+        });
+      }
+
+      return { error };
+    } catch (error: any) {
+      const err = { message: error.message || 'An unexpected error occurred' };
+      toast({
+        title: "Password reset failed",
+        description: err.message,
+        variant: "destructive",
+      });
+      return { error: err };
+    }
+  };
+
   const updateProfile = async (updates: Partial<UserProfile>) => {
     if (!user) return { error: { message: 'No user logged in' } };
 
@@ -282,6 +314,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     signIn,
     signInWithOAuth,
     signOut,
+    resetPassword,
     updateProfile,
   };
 
