@@ -127,10 +127,6 @@ const Auth = () => {
                       Sign In
                     </Button>
                   </form>
-                  
-                  <div className="text-center text-sm text-muted-foreground">
-                    <p>Don't have an account? Please check your email to confirm your account after signing up.</p>
-                  </div>
                 </>
               ) : (
                 <div className="space-y-4">
