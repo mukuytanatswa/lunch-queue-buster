@@ -141,12 +141,15 @@ const DriverDashboard = () => {
     totalDeliveries: 247
   });
 
-  // Redirect if not driver
+  // Temporarily allow access for demo purposes
+  // TODO: Re-enable driver role check after proper user roles are set up
+  /*
   useEffect(() => {
     if (!loading && (!user || profile?.role !== 'driver')) {
       navigate('/');
     }
   }, [user, profile, loading, navigate]);
+  */
 
   // Handler Functions
   const handleGoOnline = () => {
@@ -227,9 +230,12 @@ const DriverDashboard = () => {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 
+  // Temporarily allow access for demo purposes
+  /*
   if (!user || profile?.role !== 'driver') {
     return null;
   }
+  */
 
   return (
     <div className="min-h-screen bg-background">
