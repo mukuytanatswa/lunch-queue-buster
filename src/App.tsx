@@ -20,6 +20,7 @@ import VendorDetail from "./pages/VendorDetail";
 import VendorDashboard from "./pages/VendorDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import DriverDashboard from "./pages/DriverDashboard";
+import InviteAccept from "./pages/InviteAccept";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +44,7 @@ const App = () => (
             <Route path="/vendor-dashboard" element={<VendorDashboard />} />
             <Route path="/admin-dashboard" element={<AdminDashboard />} />
             <Route path="/driver-dashboard" element={<DriverDashboard />} />
+            <Route path="/invite" element={<InviteAccept />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

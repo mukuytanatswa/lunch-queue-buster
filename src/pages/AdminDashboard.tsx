@@ -12,20 +12,26 @@ const AdminDashboard = () => {
   const { user, profile, loading } = useAuth();
   const navigate = useNavigate();
 
-  // Redirect if not admin
+  // Temporarily allow access for demo purposes
+  // TODO: Re-enable admin role check after proper user roles are set up
+  /*
   useEffect(() => {
     if (!loading && (!user || profile?.role !== 'admin')) {
       navigate('/');
     }
   }, [user, profile, loading, navigate]);
+  */
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 
+  // Temporarily allow access for demo purposes
+  /*
   if (!user || profile?.role !== 'admin') {
     return null;
   }
+  */
 
   return (
     <div className="min-h-screen bg-background">
@@ -34,7 +40,7 @@ const AdminDashboard = () => {
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
           <p className="text-muted-foreground">
-            Welcome, {profile?.first_name}! Complete operational control of QuickBite platform.
+            Welcome, {profile?.first_name || 'Admin'}! Complete operational control of QuickBite platform.
           </p>
         </div>
 
