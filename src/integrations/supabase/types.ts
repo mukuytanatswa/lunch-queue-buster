@@ -14,6 +14,250 @@ export type Database = {
   }
   public: {
     Tables: {
+      driver_profiles: {
+        Row: {
+          bank_account_name: string | null
+          bank_account_number: string | null
+          bank_name: string | null
+          created_at: string | null
+          current_location: unknown | null
+          delivery_radius_km: number | null
+          id: string
+          is_online: boolean | null
+          license_plate: string | null
+          rating: number | null
+          total_deliveries: number | null
+          total_earnings: number | null
+          updated_at: string | null
+          user_id: string
+          vehicle_type: string | null
+        }
+        Insert: {
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
+          created_at?: string | null
+          current_location?: unknown | null
+          delivery_radius_km?: number | null
+          id?: string
+          is_online?: boolean | null
+          license_plate?: string | null
+          rating?: number | null
+          total_deliveries?: number | null
+          total_earnings?: number | null
+          updated_at?: string | null
+          user_id: string
+          vehicle_type?: string | null
+        }
+        Update: {
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
+          created_at?: string | null
+          current_location?: unknown | null
+          delivery_radius_km?: number | null
+          id?: string
+          is_online?: boolean | null
+          license_plate?: string | null
+          rating?: number | null
+          total_deliveries?: number | null
+          total_earnings?: number | null
+          updated_at?: string | null
+          user_id?: string
+          vehicle_type?: string | null
+        }
+        Relationships: []
+      }
+      menu_items: {
+        Row: {
+          allergens: string[] | null
+          category: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          is_available: boolean | null
+          is_vegan: boolean | null
+          is_vegetarian: boolean | null
+          name: string
+          preparation_time: number | null
+          price: number
+          updated_at: string | null
+          vendor_id: string
+        }
+        Insert: {
+          allergens?: string[] | null
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_available?: boolean | null
+          is_vegan?: boolean | null
+          is_vegetarian?: boolean | null
+          name: string
+          preparation_time?: number | null
+          price: number
+          updated_at?: string | null
+          vendor_id: string
+        }
+        Update: {
+          allergens?: string[] | null
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_available?: boolean | null
+          is_vegan?: boolean | null
+          is_vegetarian?: boolean | null
+          name?: string
+          preparation_time?: number | null
+          price?: number
+          updated_at?: string | null
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_items_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_items: {
+        Row: {
+          created_at: string | null
+          id: string
+          menu_item_id: string | null
+          order_id: string
+          quantity: number
+          special_instructions: string | null
+          total_price: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          menu_item_id?: string | null
+          order_id: string
+          quantity?: number
+          special_instructions?: string | null
+          total_price: number
+          unit_price: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          menu_item_id?: string | null
+          order_id?: string
+          quantity?: number
+          special_instructions?: string | null
+          total_price?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          created_at: string | null
+          customer_id: string
+          customer_name: string
+          customer_phone: string | null
+          delivered_time: string | null
+          delivery_address: string
+          delivery_fee: number
+          delivery_instructions: string | null
+          driver_id: string | null
+          estimated_delivery_time: string | null
+          id: string
+          order_number: string
+          payment_method: string | null
+          payment_status: string | null
+          pickup_time: string | null
+          status: string
+          stripe_payment_intent_id: string | null
+          subtotal: number
+          tip_amount: number | null
+          total_amount: number
+          updated_at: string | null
+          vendor_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          customer_id: string
+          customer_name: string
+          customer_phone?: string | null
+          delivered_time?: string | null
+          delivery_address: string
+          delivery_fee?: number
+          delivery_instructions?: string | null
+          driver_id?: string | null
+          estimated_delivery_time?: string | null
+          id?: string
+          order_number: string
+          payment_method?: string | null
+          payment_status?: string | null
+          pickup_time?: string | null
+          status?: string
+          stripe_payment_intent_id?: string | null
+          subtotal: number
+          tip_amount?: number | null
+          total_amount: number
+          updated_at?: string | null
+          vendor_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          customer_id?: string
+          customer_name?: string
+          customer_phone?: string | null
+          delivered_time?: string | null
+          delivery_address?: string
+          delivery_fee?: number
+          delivery_instructions?: string | null
+          driver_id?: string | null
+          estimated_delivery_time?: string | null
+          id?: string
+          order_number?: string
+          payment_method?: string | null
+          payment_status?: string | null
+          pickup_time?: string | null
+          status?: string
+          stripe_payment_intent_id?: string | null
+          subtotal?: number
+          tip_amount?: number | null
+          total_amount?: number
+          updated_at?: string | null
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -56,12 +300,135 @@ export type Database = {
         }
         Relationships: []
       }
+      reviews: {
+        Row: {
+          created_at: string | null
+          customer_id: string
+          driver_comment: string | null
+          driver_id: string | null
+          driver_rating: number | null
+          id: string
+          order_id: string
+          vendor_comment: string | null
+          vendor_id: string | null
+          vendor_rating: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          customer_id: string
+          driver_comment?: string | null
+          driver_id?: string | null
+          driver_rating?: number | null
+          id?: string
+          order_id: string
+          vendor_comment?: string | null
+          vendor_id?: string | null
+          vendor_rating?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          customer_id?: string
+          driver_comment?: string | null
+          driver_id?: string | null
+          driver_rating?: number | null
+          id?: string
+          order_id?: string
+          vendor_comment?: string | null
+          vendor_id?: string | null
+          vendor_rating?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendors: {
+        Row: {
+          created_at: string | null
+          cuisine_type: string
+          delivery_fee: number | null
+          delivery_time_max: number | null
+          delivery_time_min: number | null
+          description: string | null
+          email: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          is_featured: boolean | null
+          location: string
+          minimum_order: number | null
+          name: string
+          phone_number: string | null
+          rating: number | null
+          total_reviews: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          cuisine_type: string
+          delivery_fee?: number | null
+          delivery_time_max?: number | null
+          delivery_time_min?: number | null
+          description?: string | null
+          email?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          location: string
+          minimum_order?: number | null
+          name: string
+          phone_number?: string | null
+          rating?: number | null
+          total_reviews?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          cuisine_type?: string
+          delivery_fee?: number | null
+          delivery_time_max?: number | null
+          delivery_time_min?: number | null
+          description?: string | null
+          email?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          location?: string
+          minimum_order?: number | null
+          name?: string
+          phone_number?: string | null
+          rating?: number | null
+          total_reviews?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_order_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
       user_role: "student" | "vendor" | "driver" | "admin"
