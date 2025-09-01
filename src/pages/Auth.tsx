@@ -206,7 +206,7 @@ const Auth = () => {
                     <Input
                       id="firstName"
                       name="firstName"
-                      placeholder="John"
+                      placeholder="Dr. Ebrahim"
                       required
                     />
                   </div>
@@ -215,7 +215,7 @@ const Auth = () => {
                     <Input
                       id="lastName"
                       name="lastName"
-                      placeholder="Doe"
+                      placeholder="Fredericks"
                       required
                     />
                   </div>
