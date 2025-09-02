@@ -1,6 +1,9 @@
 
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { useCart } from '@/hooks/useCart';
+import { useCreateOrder } from '@/hooks/useOrders';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
@@ -25,80 +28,60 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 
-// Mock cart items for demo
-const initialCartItems = [
-  {
-    id: '101',
-    name: 'Classic Beef Burger',
-    price: 55.00,
-    quantity: 1,
-    image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2300&q=80',
-    vendorId: '1',
-    vendorName: 'Food Science Café'
-  },
-  {
-    id: '102',
-    name: 'Chicken Wrap',
-    price: 45.00,
-    quantity: 2,
-    image: 'https://images.unsplash.com/photo-1626700051175-6818013e1d4f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2369&q=80',
-    vendorId: '1',
-    vendorName: 'Food Science Café'
-  }
-];
-
 const Cart = () => {
+  const { user } = useAuth();
+  const { items, updateQuantity, removeItem, clearCart, getTotalPrice, getTotalItems } = useCart();
+  const { createOrder, loading: orderLoading } = useCreateOrder();
   const navigate = useNavigate();
-  const [cartItems, setCartItems] = useState(initialCartItems);
   const [isCheckoutDialogOpen, setIsCheckoutDialogOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [deliveryLocation, setDeliveryLocation] = useState('');
   const [specialInstructions, setSpecialInstructions] = useState('');
   
-  const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const deliveryFee = 15.00;
-  const serviceFee = 10.00;
-  const total = subtotal + deliveryFee + serviceFee;
+  const subtotal = getTotalPrice();
+  const deliveryFee = 5.00;
+  const total = subtotal + deliveryFee;
   
   const handleUpdateQuantity = (id: string, change: number) => {
-    setCartItems(prev => 
-      prev.map(item => {
-        if (item.id === id) {
-          const newQuantity = Math.max(1, item.quantity + change);
-          return { ...item, quantity: newQuantity };
-        }
-        return item;
-      })
-    );
+    const currentItem = items.find(item => item.id === id);
+    if (currentItem) {
+      const newQuantity = Math.max(1, currentItem.quantity + change);
+      updateQuantity(id, newQuantity);
+    }
   };
   
   const handleRemoveItem = (id: string) => {
-    setCartItems(prev => prev.filter(item => item.id !== id));
+    removeItem(id);
     toast.success("Item removed from cart");
   };
   
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
+    if (!user) {
+      toast.error('Please log in to place an order');
+      navigate('/auth');
+      return;
+    }
+
     if (!deliveryLocation) {
       toast.error("Please provide a delivery location");
       return;
     }
     
-    setIsLoading(true);
-    
-    // Simulate API call for order placement
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await createOrder(items, deliveryLocation, specialInstructions);
+      clearCart();
       setOrderPlaced(true);
       
       // Redirect to orders page after a delay
       setTimeout(() => {
         navigate('/orders');
       }, 2000);
-    }, 1500);
+    } catch (error) {
+      // Error is already handled by the hook
+    }
   };
   
-  if (cartItems.length === 0 && !orderPlaced) {
+  if (items.length === 0 && !orderPlaced) {
     return (
       <div className="min-h-screen flex flex-col page-transition">
         <Navbar />
@@ -141,18 +124,18 @@ const Cart = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Cart Items */}
           <div className="lg:col-span-2 space-y-4">
-            {cartItems.map((item) => (
+            {items.map((item) => (
               <div 
                 key={item.id}
                 className="flex gap-4 p-4 border rounded-lg bg-white"
               >
-                <div className="h-20 w-20 rounded-md overflow-hidden flex-shrink-0">
-                  <img
-                    src={item.image}
-                    alt={item.name}
-                    className="h-full w-full object-cover"
-                  />
-                </div>
+                 <div className="h-20 w-20 rounded-md overflow-hidden flex-shrink-0">
+                   <img
+                     src={'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1974&q=80'}
+                     alt={item.name}
+                     className="h-full w-full object-cover"
+                   />
+                 </div>
                 
                 <div className="flex-grow space-y-1">
                   <h3 className="font-medium">{item.name}</h3>
@@ -208,10 +191,6 @@ const Cart = () => {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Delivery Fee</span>
                   <span>R{deliveryFee.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Service Fee</span>
-                  <span>R{serviceFee.toFixed(2)}</span>
                 </div>
                 <div className="border-t pt-3 flex justify-between font-semibold">
                   <span>Total</span>
@@ -282,12 +261,12 @@ const Cart = () => {
               <div className="font-medium mb-2">Order Summary</div>
               <div className="text-sm text-muted-foreground">
                 <div className="flex justify-between">
-                  <span>{cartItems.reduce((sum, item) => sum + item.quantity, 0)} items</span>
+                  <span>{getTotalItems()} items</span>
                   <span>R{subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Fees</span>
-                  <span>R{(deliveryFee + serviceFee).toFixed(2)}</span>
+                  <span>Delivery Fee</span>
+                  <span>R{deliveryFee.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between font-medium pt-1 mt-1 border-t">
                   <span>Total</span>
@@ -307,9 +286,9 @@ const Cart = () => {
             <Button 
               className="bg-brand-500 hover:bg-brand-600"
               onClick={handlePlaceOrder}
-              disabled={isLoading}
+              disabled={orderLoading || !deliveryLocation.trim()}
             >
-              {isLoading ? 'Processing...' : 'Place Order'}
+              {orderLoading ? 'Processing...' : 'Place Order'}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useVendors } from '@/hooks/useVendors';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import HeroSection from '@/components/HeroSection';
@@ -16,6 +17,7 @@ const Index = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCampus, setSelectedCampus] = useState('all');
   const { user, profile } = useAuth();
+  const { vendors, loading } = useVendors();
   const navigate = useNavigate();
 
   // Redirect to onboarding if user is logged in but hasn't completed onboarding
@@ -25,117 +27,62 @@ const Index = () => {
     }
   }, [user, profile, navigate]);
   
-  // Mock data for featured vendors
-  const vendors = [
-    {
-      id: '1',
-      name: 'Food Science',
-      image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1974&q=80',
-      cuisineType: 'Fast Food',
-      rating: 4.5,
-      deliveryTime: '15-25 min',
-      location: 'Upper Campus',
-      featured: true,
-      quickBites: true,
-      budget: false,
-      trending: true,
-      groupDeals: false
-    },
-    {
-      id: '2',
-      name: 'Health Sciences Cafe',
-      image: 'https://images.unsplash.com/photo-1565895405138-6c3a1555da6a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
-      cuisineType: 'Healthy',
-      rating: 4.2,
-      deliveryTime: '20-30 min',
-      location: 'Medical Campus', 
-      featured: false,
-      quickBites: false,
-      budget: true,
-      trending: false,
-      groupDeals: true
-    },
-    {
-      id: '3',
-      name: 'Engineering Eatery',
-      image: 'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1974&q=80',
-      cuisineType: 'Mixed',
-      rating: 4.7,
-      deliveryTime: '10-20 min',
-      location: 'Upper Campus',
-      featured: true,
-      quickBites: true,
-      budget: false,
-      trending: true,
-      groupDeals: false
-    },
-    {
-      id: '4',
-      name: 'Arts Cafe',
-      image: 'https://images.unsplash.com/photo-1559948271-7d5c98d1e415?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1974&q=80',
-      cuisineType: 'Cafe',
-      rating: 4.0,
-      deliveryTime: '15-25 min',
-      location: 'Middle Campus',
-      featured: false,
-      quickBites: true,
-      budget: true,
-      trending: false,
-      groupDeals: true
-    },
-    {
-      id: '5',
-      name: 'Commerce Canteen',
-      image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
-      cuisineType: 'Fast Food',
-      rating: 4.3,
-      deliveryTime: '15-20 min',
-      location: 'Upper Campus',
-      featured: true,
-      quickBites: false,
-      budget: true,
-      trending: true,
-      groupDeals: true
-    },
-    {
-      id: '6',
-      name: 'Law Lounge',
-      image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
-      cuisineType: 'Premium',
-      rating: 4.8,
-      deliveryTime: '25-35 min',
-      location: 'Middle Campus',
-      featured: false,
-      quickBites: false,
-      budget: false,
-      trending: true,
-      groupDeals: true
-    }
-  ];
+  // Show loading state while vendors are being fetched
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-grow flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-4 text-muted-foreground">Loading vendors...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Transform vendors for compatibility with existing UI logic
+  const transformedVendors = vendors.map(vendor => ({
+    id: vendor.id,
+    name: vendor.name,
+    image: vendor.image_url || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1974&q=80',
+    cuisineType: vendor.cuisine_type,
+    rating: vendor.rating || 0,
+    deliveryTime: `${vendor.delivery_time_min}-${vendor.delivery_time_max} min`,
+    location: vendor.location,
+    featured: vendor.is_featured,
+    // Derive categories from vendor data
+    quickBites: (vendor.delivery_time_max || 35) <= 15,
+    budget: (vendor.minimum_order || 0) <= 30,
+    trending: vendor.rating >= 4.5,
+    groupDeals: (vendor.minimum_order || 0) >= 100
+  }));
 
   // Filter vendors based on search query and selected campus
-  const filteredVendors = vendors.filter(vendor => {
+  const filteredVendors = transformedVendors.filter(vendor => {
     const matchesSearch = vendor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          vendor.cuisineType.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCampus = selectedCampus === 'all' || vendor.location === selectedCampus;
+    const matchesCampus = selectedCampus === 'all' || vendor.location.toLowerCase().includes(selectedCampus.toLowerCase());
     return matchesSearch && matchesCampus;
   });
 
   // Get vendors by category
-  const getVendorsByCategory = (category) => {
+  const getVendorsByCategory = (category: string) => {
     switch(category) {
       case 'quickBites':
-        return vendors.filter(vendor => vendor.quickBites);
+        return transformedVendors.filter(vendor => vendor.quickBites);
       case 'budget':
-        return vendors.filter(vendor => vendor.budget);
+        return transformedVendors.filter(vendor => vendor.budget);
       case 'trending':
-        return vendors.filter(vendor => vendor.trending);
+        return transformedVendors.filter(vendor => vendor.trending);
       case 'groupDeals':
-        return vendors.filter(vendor => vendor.groupDeals);
+        return transformedVendors.filter(vendor => vendor.groupDeals);
       case 'featured':
-        return vendors.filter(vendor => vendor.featured);
+        return transformedVendors.filter(vendor => vendor.featured);
       default:
-        return vendors;
+        return transformedVendors;
     }
   };
 
