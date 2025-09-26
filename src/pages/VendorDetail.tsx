@@ -1,15 +1,149 @@
 
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useVendor } from '@/hooks/useVendors';
-import { useMenuItems } from '@/hooks/useMenuItems';
-import { useCart } from '@/hooks/useCart';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import MenuItemCard from '@/components/MenuItemCard';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Clock, MapPin, Star, Plus } from 'lucide-react';
+import { ArrowLeft, Clock, MapPin, Star } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+
+// Mock data for the vendor
+const getVendorById = (id: string) => {
+  const vendors = [
+    {
+      id: "1",
+      name: "Food Science",
+      image: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1974&q=80",
+      cuisineType: "Fast Food",
+      rating: 4.5,
+      deliveryTime: "15-25 min",
+      location: "Upper Campus",
+      description: "Serving quick and delicious meals for students on the go. Our menu features a variety of burgers, wraps, and healthy options to fuel your day.",
+      menu: [
+        {
+          id: "101",
+          name: "Classic Beef Burger",
+          description: "Juicy beef patty with lettuce, tomato, onion and our special sauce",
+          price: 55.00,
+          image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2300&q=80",
+          tags: ["Popular", "Meat"]
+        },
+        {
+          id: "102",
+          name: "Chicken Wrap",
+          description: "Grilled chicken, fresh vegetables and creamy sauce in a soft tortilla",
+          price: 45.00,
+          image: "https://images.unsplash.com/photo-1626700051175-6818013e1d4f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2369&q=80",
+          tags: ["Healthy"]
+        },
+        {
+          id: "103",
+          name: "Vegetarian Pasta",
+          description: "Penne pasta with seasonal vegetables and rich tomato sauce",
+          price: 50.00,
+          image: "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=880&q=80",
+          tags: ["Vegetarian"]
+        },
+        {
+          id: "104",
+          name: "Greek Salad",
+          description: "Fresh salad with feta cheese, olives, tomatoes and cucumber",
+          price: 40.00,
+          image: "https://images.unsplash.com/photo-1540420773420-3366772f4999?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1684&q=80",
+          tags: ["Vegetarian", "Healthy"]
+        }
+      ]
+    },
+    {
+      id: "2",
+      name: "Health Sciences Cafe",
+      image: "https://images.unsplash.com/photo-1565895405138-6c3a1555da6a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80",
+      cuisineType: "Healthy",
+      rating: 4.2,
+      deliveryTime: "20-30 min",
+      location: "Medical Campus",
+      description: "Nutritious meals made with fresh ingredients. Our menu is designed to provide balanced options for health-conscious students and staff.",
+      menu: [
+        {
+          id: "201",
+          name: "Protein Bowl",
+          description: "Quinoa, grilled chicken, avocado, and mixed vegetables",
+          price: 60.00,
+          image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1760&q=80",
+          tags: ["High Protein", "Healthy"]
+        },
+        {
+          id: "202",
+          name: "Vegan Wrap",
+          description: "Hummus, roasted vegetables and fresh greens in a whole wheat wrap",
+          price: 45.00,
+          image: "https://images.unsplash.com/photo-1635753022092-a7ebc8e6987b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1042&q=80",
+          tags: ["Vegan", "Popular"]
+        }
+      ]
+    },
+    {
+      id: "3",
+      name: "Engineering Eatery",
+      image: "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1974&q=80",
+      cuisineType: "Mixed",
+      rating: 4.7,
+      deliveryTime: "10-20 min",
+      location: "Upper Campus",
+      description: "A diverse menu with something for everyone. From hearty comfort food to light snacks, we've got all your cravings covered.",
+      menu: [
+        {
+          id: "301",
+          name: "Loaded Nachos",
+          description: "Corn chips topped with cheese, guacamole, sour cream and salsa",
+          price: 50.00,
+          image: "https://images.unsplash.com/photo-1513456852971-30c0b8199d4d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=735&q=80",
+          tags: ["Sharing", "Popular"]
+        },
+        {
+          id: "302",
+          name: "Beef Lasagna",
+          description: "Layers of pasta, beef mince, bechamel sauce and cheese",
+          price: 65.00,
+          image: "https://images.unsplash.com/photo-1619895092538-128341789043?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
+          tags: ["Hearty"]
+        }
+      ]
+    },
+    {
+      id: "4",
+      name: "Arts Cafe",
+      image: "https://images.unsplash.com/photo-1559948271-7d5c98d1e415?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1974&q=80",
+      cuisineType: "Cafe",
+      rating: 4.0,
+      deliveryTime: "15-25 min",
+      location: "Middle Campus",
+      description: "A creative space offering artisanal coffee and baked goods. The perfect spot to refuel during a study session or catch up with friends.",
+      menu: [
+        {
+          id: "401",
+          name: "Breakfast Bagel",
+          description: "Toasted bagel with cream cheese, smoked salmon and capers",
+          price: 55.00,
+          image: "https://images.unsplash.com/photo-1592321675774-3de57f3ee0dc?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
+          tags: ["Breakfast"]
+        },
+        {
+          id: "402",
+          name: "Cappuccino",
+          description: "Espresso with steamed milk and milk foam",
+          price: 30.00,
+          image: "https://images.unsplash.com/photo-1534778101976-62847782c213?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
+          tags: ["Beverages", "Popular"]
+        }
+      ]
+    }
+  ];
+  
+  return vendors.find(vendor => vendor.id === id);
+};
 
 interface MenuItem {
   id: string;
@@ -22,29 +156,10 @@ interface MenuItem {
 
 const VendorDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const { vendor, loading: vendorLoading, error: vendorError } = useVendor(id || '');
-  const { menuItems, loading: menuLoading } = useMenuItems(id);
-  const { addItem } = useCart();
+  const vendor = getVendorById(id || "");
   const [filterTag, setFilterTag] = useState<string | null>(null);
   
-  const loading = vendorLoading || menuLoading;
-  
-  if (loading) {
-    return (
-      <div className="min-h-screen flex flex-col">
-        <Navbar />
-        <main className="flex-grow pt-24 pb-16 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-4 text-muted-foreground">Loading vendor details...</p>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  if (vendorError || !vendor) {
+  if (!vendor) {
     return (
       <div className="min-h-screen flex flex-col">
         <Navbar />
@@ -52,7 +167,7 @@ const VendorDetail = () => {
           <div className="text-center">
             <h2 className="text-2xl font-bold mb-4">Vendor Not Found</h2>
             <p className="mb-6 text-muted-foreground">
-              {vendorError || 'Sorry, we couldn\'t find the vendor you\'re looking for.'}
+              Sorry, we couldn't find the vendor you're looking for.
             </p>
             <Button asChild>
               <Link to="/vendors">Browse Vendors</Link>
@@ -64,40 +179,19 @@ const VendorDetail = () => {
     );
   }
   
-  // Transform menu items for compatibility
-  const transformedMenuItems = menuItems.map(item => ({
-    id: item.id,
-    name: item.name,
-    description: item.description || '',
-    price: Number(item.price),
-    image: item.image_url || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1974&q=80',
-    tags: [
-      ...(item.is_vegetarian ? ['Vegetarian'] : []),
-      ...(item.is_vegan ? ['Vegan'] : []),
-      ...(item.category ? [item.category] : [])
-    ].filter(Boolean)
-  }));
-  
   const availableTags = Array.from(
     new Set(
-      transformedMenuItems
+      vendor.menu
         .flatMap(item => item.tags || [])
     )
   );
   
   const filteredMenu = filterTag 
-    ? transformedMenuItems.filter(item => item.tags?.includes(filterTag))
-    : transformedMenuItems;
+    ? vendor.menu.filter(item => item.tags?.includes(filterTag))
+    : vendor.menu;
     
-  const handleAddToCart = (item: any) => {
-    addItem({
-      menuItemId: item.id,
-      name: item.name,
-      price: item.price,
-      quantity: 1,
-      vendorId: vendor.id,
-      vendorName: vendor.name
-    });
+  const handleAddToCart = (item: MenuItem) => {
+    // In a real app, this would add to a cart context/state
     toast.success(`${item.name} added to cart`);
   };
   
@@ -110,7 +204,7 @@ const VendorDetail = () => {
         <div className="relative h-[250px] md:h-[350px] w-full overflow-hidden">
           <div className="absolute inset-0 bg-black/40 z-10" />
           <img
-            src={vendor.image_url || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1974&q=80'}
+            src={vendor.image}
             alt={vendor.name}
             className="w-full h-full object-cover"
           />
@@ -126,15 +220,15 @@ const VendorDetail = () => {
               <h1 className="text-3xl md:text-4xl font-bold">{vendor.name}</h1>
               <div className="flex flex-wrap items-center gap-4 mt-2">
                 <Badge variant="outline" className="bg-white/20 text-white border-white/30">
-                  {vendor.cuisine_type}
+                  {vendor.cuisineType}
                 </Badge>
                 <div className="flex items-center">
                   <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-                  <span>{vendor.rating || 0}</span>
+                  <span>{vendor.rating}</span>
                 </div>
                 <div className="flex items-center">
                   <Clock className="h-4 w-4 mr-1" />
-                  <span>{vendor.delivery_time_min}-{vendor.delivery_time_max} min</span>
+                  <span>{vendor.deliveryTime}</span>
                 </div>
                 <div className="flex items-center">
                   <MapPin className="h-4 w-4 mr-1" />
@@ -148,7 +242,7 @@ const VendorDetail = () => {
         <div className="container mx-auto px-4 py-8">
           {/* Vendor Description */}
           <div className="mb-8">
-            <p className="text-muted-foreground">{vendor.description || 'Delicious food delivered fresh to your location on campus.'}</p>
+            <p className="text-muted-foreground">{vendor.description}</p>
           </div>
           
           {/* Menu Category Filters */}
@@ -176,50 +270,43 @@ const VendorDetail = () => {
           
           {/* Menu Items */}
           <h2 className="text-2xl font-bold mb-4">Menu</h2>
-          {filteredMenu.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">No menu items available.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredMenu.map((item) => (
-                <div key={item.id} className="border rounded-lg overflow-hidden bg-card shadow-sm hover:shadow-md transition-shadow">
-                  <div className="h-48 overflow-hidden">
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <div className="p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-semibold text-foreground">{item.name}</h3>
-                      <span className="font-medium text-primary">R{item.price.toFixed(2)}</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                      {item.description}
-                    </p>
-                    {item.tags && item.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {item.tags.map(tag => (
-                          <Badge key={tag} variant="secondary" className="text-xs">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                    <Button 
-                      className="w-full"
-                      onClick={() => handleAddToCart(item)}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add to Cart
-                    </Button>
-                  </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredMenu.map((item) => (
+              <div key={item.id} className="border rounded-lg overflow-hidden bg-white shadow-sm">
+                <div className="h-48 overflow-hidden">
+                  <img
+                    src={item.image}
+                    alt={item.name}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
-              ))}
-            </div>
-          )}
+                <div className="p-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="font-semibold">{item.name}</h3>
+                    <span className="font-medium">R{item.price.toFixed(2)}</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                    {item.description}
+                  </p>
+                  {item.tags && (
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {item.tags.map(tag => (
+                        <Badge key={tag} variant="secondary" className="text-xs">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                  <Button 
+                    className="w-full bg-brand-500 hover:bg-brand-600"
+                    onClick={() => handleAddToCart(item)}
+                  >
+                    Add to Cart
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </main>
       
