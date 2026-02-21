@@ -12,26 +12,20 @@ const AdminDashboard = () => {
   const { user, profile, loading } = useAuth();
   const navigate = useNavigate();
 
-  // Temporarily allow access for demo purposes
-  // TODO: Re-enable admin role check after proper user roles are set up
-  /*
+  // Re-enabled admin role check for security
   useEffect(() => {
     if (!loading && (!user || profile?.role !== 'admin')) {
       navigate('/');
     }
   }, [user, profile, loading, navigate]);
-  */
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 
-  // Temporarily allow access for demo purposes
-  /*
   if (!user || profile?.role !== 'admin') {
     return null;
   }
-  */
 
   return (
     <div className="min-h-screen bg-background">
@@ -54,29 +48,16 @@ const AdminDashboard = () => {
             <TabsTrigger value="financial">Financial</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview">
-            <PlatformOverview />
-          </TabsContent>
-
-          <TabsContent value="orders">
-            <OrdersManagement />
-          </TabsContent>
-
-          <TabsContent value="vendors">
-            <VendorManagement />
-          </TabsContent>
-
-          <TabsContent value="drivers">
-            <DriverManagement />
-          </TabsContent>
-
+          <TabsContent value="overview"><PlatformOverview /></TabsContent>
+          <TabsContent value="orders"><OrdersManagement /></TabsContent>
+          <TabsContent value="vendors"><VendorManagement /></TabsContent>
+          <TabsContent value="drivers"><DriverManagement /></TabsContent>
           <TabsContent value="customers">
             <div className="text-center py-12">
               <h3 className="text-xl font-semibold mb-2">Customer Management</h3>
               <p className="text-muted-foreground">Customer management features coming soon...</p>
             </div>
           </TabsContent>
-
           <TabsContent value="financial">
             <div className="text-center py-12">
               <h3 className="text-xl font-semibold mb-2">Financial Management</h3>
