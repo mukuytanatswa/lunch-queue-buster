@@ -1,164 +1,97 @@
 
 import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import MenuItemCard from '@/components/MenuItemCard';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Clock, MapPin, Star } from 'lucide-react';
+import { ArrowLeft, Clock, MapPin, Star, Plus, Minus, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-
-// Mock data for the vendor
-const getVendorById = (id: string) => {
-  const vendors = [
-    {
-      id: "1",
-      name: "Food Science",
-      image: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1974&q=80",
-      cuisineType: "Fast Food",
-      rating: 4.5,
-      deliveryTime: "15-25 min",
-      location: "Upper Campus",
-      description: "Serving quick and delicious meals for students on the go. Our menu features a variety of burgers, wraps, and healthy options to fuel your day.",
-      menu: [
-        {
-          id: "101",
-          name: "Classic Beef Burger",
-          description: "Juicy beef patty with lettuce, tomato, onion and our special sauce",
-          price: 55.00,
-          image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2300&q=80",
-          tags: ["Popular", "Meat"]
-        },
-        {
-          id: "102",
-          name: "Chicken Wrap",
-          description: "Grilled chicken, fresh vegetables and creamy sauce in a soft tortilla",
-          price: 45.00,
-          image: "https://images.unsplash.com/photo-1626700051175-6818013e1d4f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2369&q=80",
-          tags: ["Healthy"]
-        },
-        {
-          id: "103",
-          name: "Vegetarian Pasta",
-          description: "Penne pasta with seasonal vegetables and rich tomato sauce",
-          price: 50.00,
-          image: "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=880&q=80",
-          tags: ["Vegetarian"]
-        },
-        {
-          id: "104",
-          name: "Greek Salad",
-          description: "Fresh salad with feta cheese, olives, tomatoes and cucumber",
-          price: 40.00,
-          image: "https://images.unsplash.com/photo-1540420773420-3366772f4999?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1684&q=80",
-          tags: ["Vegetarian", "Healthy"]
-        }
-      ]
-    },
-    {
-      id: "2",
-      name: "Health Sciences Cafe",
-      image: "https://images.unsplash.com/photo-1565895405138-6c3a1555da6a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80",
-      cuisineType: "Healthy",
-      rating: 4.2,
-      deliveryTime: "20-30 min",
-      location: "Medical Campus",
-      description: "Nutritious meals made with fresh ingredients. Our menu is designed to provide balanced options for health-conscious students and staff.",
-      menu: [
-        {
-          id: "201",
-          name: "Protein Bowl",
-          description: "Quinoa, grilled chicken, avocado, and mixed vegetables",
-          price: 60.00,
-          image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1760&q=80",
-          tags: ["High Protein", "Healthy"]
-        },
-        {
-          id: "202",
-          name: "Vegan Wrap",
-          description: "Hummus, roasted vegetables and fresh greens in a whole wheat wrap",
-          price: 45.00,
-          image: "https://images.unsplash.com/photo-1635753022092-a7ebc8e6987b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1042&q=80",
-          tags: ["Vegan", "Popular"]
-        }
-      ]
-    },
-    {
-      id: "3",
-      name: "Engineering Eatery",
-      image: "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1974&q=80",
-      cuisineType: "Mixed",
-      rating: 4.7,
-      deliveryTime: "10-20 min",
-      location: "Upper Campus",
-      description: "A diverse menu with something for everyone. From hearty comfort food to light snacks, we've got all your cravings covered.",
-      menu: [
-        {
-          id: "301",
-          name: "Loaded Nachos",
-          description: "Corn chips topped with cheese, guacamole, sour cream and salsa",
-          price: 50.00,
-          image: "https://images.unsplash.com/photo-1513456852971-30c0b8199d4d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=735&q=80",
-          tags: ["Sharing", "Popular"]
-        },
-        {
-          id: "302",
-          name: "Beef Lasagna",
-          description: "Layers of pasta, beef mince, bechamel sauce and cheese",
-          price: 65.00,
-          image: "https://images.unsplash.com/photo-1619895092538-128341789043?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
-          tags: ["Hearty"]
-        }
-      ]
-    },
-    {
-      id: "4",
-      name: "Arts Cafe",
-      image: "https://images.unsplash.com/photo-1559948271-7d5c98d1e415?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1974&q=80",
-      cuisineType: "Cafe",
-      rating: 4.0,
-      deliveryTime: "15-25 min",
-      location: "Middle Campus",
-      description: "A creative space offering artisanal coffee and baked goods. The perfect spot to refuel during a study session or catch up with friends.",
-      menu: [
-        {
-          id: "401",
-          name: "Breakfast Bagel",
-          description: "Toasted bagel with cream cheese, smoked salmon and capers",
-          price: 55.00,
-          image: "https://images.unsplash.com/photo-1592321675774-3de57f3ee0dc?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
-          tags: ["Breakfast"]
-        },
-        {
-          id: "402",
-          name: "Cappuccino",
-          description: "Espresso with steamed milk and milk foam",
-          price: 30.00,
-          image: "https://images.unsplash.com/photo-1534778101976-62847782c213?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
-          tags: ["Beverages", "Popular"]
-        }
-      ]
-    }
-  ];
-  
-  return vendors.find(vendor => vendor.id === id);
-};
-
-interface MenuItem {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  image: string;
-  tags?: string[];
-}
+import { useVendor, useMenuItems } from '@/hooks/useVendors';
+import { useCart } from '@/hooks/useCart';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 const VendorDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const vendor = getVendorById(id || "");
-  const [filterTag, setFilterTag] = useState<string | null>(null);
-  
+  const navigate = useNavigate();
+  const { data: vendor, isLoading: vendorLoading } = useVendor(id || '');
+  const { data: menuItems, isLoading: menuLoading } = useMenuItems(id || '');
+  const { addItem } = useCart();
+  const { user } = useAuth();
+  const [filterCategory, setFilterCategory] = useState<string | null>(null);
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [creatingGroup, setCreatingGroup] = useState(false);
+
+  const categories = menuItems
+    ? Array.from(new Set(menuItems.map(i => i.category).filter(Boolean)))
+    : [];
+
+  const filteredMenu = filterCategory
+    ? menuItems?.filter(i => i.category === filterCategory)
+    : menuItems;
+
+  const handleAddToCart = (item: any) => {
+    const qty = quantities[item.id] || 1;
+    addItem({
+      menuItemId: item.id,
+      name: item.name,
+      price: Number(item.price),
+      quantity: qty,
+      image: item.image_url || 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400',
+      vendorId: vendor!.id,
+      vendorName: vendor!.name,
+    });
+    setQuantities(prev => ({ ...prev, [item.id]: 0 }));
+    toast.success(`${item.name} added to cart`);
+  };
+
+  const handleCreateGroupOrder = async () => {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+    setCreatingGroup(true);
+    try {
+      const { data, error } = await supabase
+        .from('group_orders')
+        .insert({
+          creator_id: user.id,
+          vendor_id: vendor!.id,
+          name: `Group Order - ${vendor!.name}`,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Join as member
+      await supabase.from('group_order_members').insert({
+        group_order_id: data.id,
+        user_id: user.id,
+      });
+
+      navigate(`/group-order/${data.id}`);
+      toast.success('Group order created! Share the link with friends.');
+    } catch (err) {
+      toast.error('Failed to create group order');
+    } finally {
+      setCreatingGroup(false);
+    }
+  };
+
+  if (vendorLoading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-grow pt-24 pb-16 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   if (!vendor) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -166,150 +99,121 @@ const VendorDetail = () => {
         <main className="flex-grow pt-24 pb-16 flex items-center justify-center">
           <div className="text-center">
             <h2 className="text-2xl font-bold mb-4">Vendor Not Found</h2>
-            <p className="mb-6 text-muted-foreground">
-              Sorry, we couldn't find the vendor you're looking for.
-            </p>
-            <Button asChild>
-              <Link to="/vendors">Browse Vendors</Link>
-            </Button>
+            <p className="mb-6 text-muted-foreground">Sorry, we couldn't find the vendor.</p>
+            <Button asChild><Link to="/vendors">Browse Vendors</Link></Button>
           </div>
         </main>
         <Footer />
       </div>
     );
   }
-  
-  const availableTags = Array.from(
-    new Set(
-      vendor.menu
-        .flatMap(item => item.tags || [])
-    )
-  );
-  
-  const filteredMenu = filterTag 
-    ? vendor.menu.filter(item => item.tags?.includes(filterTag))
-    : vendor.menu;
-    
-  const handleAddToCart = (item: MenuItem) => {
-    // In a real app, this would add to a cart context/state
-    toast.success(`${item.name} added to cart`);
-  };
-  
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
-      
       <main className="flex-grow pt-24 pb-16">
-        {/* Hero Section with Vendor Image */}
+        {/* Hero */}
         <div className="relative h-[250px] md:h-[350px] w-full overflow-hidden">
           <div className="absolute inset-0 bg-black/40 z-10" />
-          <img
-            src={vendor.image}
-            alt={vendor.name}
-            className="w-full h-full object-cover"
-          />
+          <img src={vendor.image_url || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1200'} alt={vendor.name} className="w-full h-full object-cover" />
           <div className="absolute bottom-0 left-0 right-0 z-20 p-6 bg-gradient-to-t from-black/80 to-transparent text-white">
             <div className="container mx-auto">
-              <Link 
-                to="/vendors"
-                className="inline-flex items-center text-white/80 hover:text-white mb-4"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Vendors
+              <Link to="/vendors" className="inline-flex items-center text-white/80 hover:text-white mb-4">
+                <ArrowLeft className="h-4 w-4 mr-2" />Back to Vendors
               </Link>
               <h1 className="text-3xl md:text-4xl font-bold">{vendor.name}</h1>
               <div className="flex flex-wrap items-center gap-4 mt-2">
-                <Badge variant="outline" className="bg-white/20 text-white border-white/30">
-                  {vendor.cuisineType}
-                </Badge>
-                <div className="flex items-center">
-                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-                  <span>{vendor.rating}</span>
-                </div>
-                <div className="flex items-center">
-                  <Clock className="h-4 w-4 mr-1" />
-                  <span>{vendor.deliveryTime}</span>
-                </div>
-                <div className="flex items-center">
-                  <MapPin className="h-4 w-4 mr-1" />
-                  <span>{vendor.location}</span>
-                </div>
+                <Badge variant="outline" className="bg-white/20 text-white border-white/30">{vendor.cuisine_type}</Badge>
+                <div className="flex items-center"><Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" /><span>{Number(vendor.rating).toFixed(1)}</span></div>
+                <div className="flex items-center"><Clock className="h-4 w-4 mr-1" /><span>{vendor.delivery_time_min}-{vendor.delivery_time_max} min</span></div>
+                <div className="flex items-center"><MapPin className="h-4 w-4 mr-1" /><span>{vendor.location}</span></div>
               </div>
             </div>
           </div>
         </div>
-        
+
         <div className="container mx-auto px-4 py-8">
-          {/* Vendor Description */}
-          <div className="mb-8">
-            <p className="text-muted-foreground">{vendor.description}</p>
+          {vendor.description && <p className="text-muted-foreground mb-6">{vendor.description}</p>}
+
+          <div className="flex flex-wrap items-center gap-3 mb-6">
+            <Button variant="outline" onClick={handleCreateGroupOrder} disabled={creatingGroup}>
+              <Users className="h-4 w-4 mr-2" />{creatingGroup ? 'Creating...' : 'Start Group Order'}
+            </Button>
+            <span className="text-sm text-muted-foreground">Min. order: R{Number(vendor.minimum_order).toFixed(2)} • Delivery: R{Number(vendor.delivery_fee).toFixed(2)}</span>
           </div>
-          
-          {/* Menu Category Filters */}
-          <div className="mb-6 overflow-x-auto pb-2">
-            <div className="flex space-x-2">
-              <Badge 
-                variant={!filterTag ? "default" : "outline"}
-                className="cursor-pointer py-1 px-3"
-                onClick={() => setFilterTag(null)}
-              >
-                All
-              </Badge>
-              {availableTags.map(tag => (
-                <Badge 
-                  key={tag}
-                  variant={filterTag === tag ? "default" : "outline"}
-                  className="cursor-pointer py-1 px-3"
-                  onClick={() => setFilterTag(tag)}
-                >
-                  {tag}
-                </Badge>
-              ))}
-            </div>
-          </div>
-          
-          {/* Menu Items */}
-          <h2 className="text-2xl font-bold mb-4">Menu</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredMenu.map((item) => (
-              <div key={item.id} className="border rounded-lg overflow-hidden bg-white shadow-sm">
-                <div className="h-48 overflow-hidden">
-                  <img
-                    src={item.image}
-                    alt={item.name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-semibold">{item.name}</h3>
-                    <span className="font-medium">R{item.price.toFixed(2)}</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                    {item.description}
-                  </p>
-                  {item.tags && (
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {item.tags.map(tag => (
-                        <Badge key={tag} variant="secondary" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                  <Button 
-                    className="w-full bg-brand-500 hover:bg-brand-600"
-                    onClick={() => handleAddToCart(item)}
-                  >
-                    Add to Cart
-                  </Button>
-                </div>
+
+          {/* Category Filters */}
+          {categories.length > 0 && (
+            <div className="mb-6 overflow-x-auto pb-2">
+              <div className="flex space-x-2">
+                <Badge variant={!filterCategory ? "default" : "outline"} className="cursor-pointer py-1 px-3" onClick={() => setFilterCategory(null)}>All</Badge>
+                {categories.map(cat => (
+                  <Badge key={cat} variant={filterCategory === cat ? "default" : "outline"} className="cursor-pointer py-1 px-3" onClick={() => setFilterCategory(cat as string)}>{cat}</Badge>
+                ))}
               </div>
-            ))}
+            </div>
+          )}
+
+          <h2 className="text-2xl font-bold mb-4">Menu</h2>
+
+          {menuLoading && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map(i => <div key={i} className="h-48 rounded-lg bg-muted animate-pulse" />)}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredMenu?.map(item => {
+              const qty = quantities[item.id] || 0;
+              return (
+                <div key={item.id} className="border rounded-lg overflow-hidden bg-card shadow-sm">
+                  <div className="h-48 overflow-hidden">
+                    <img src={item.image_url || 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400'} alt={item.name} className="w-full h-full object-cover" />
+                  </div>
+                  <div className="p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="font-semibold">{item.name}</h3>
+                      <span className="font-medium">R{Number(item.price).toFixed(2)}</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{item.description}</p>
+                    <div className="flex flex-wrap gap-1 mb-3">
+                      {item.category && <Badge variant="secondary" className="text-xs">{item.category}</Badge>}
+                      {item.is_vegetarian && <Badge variant="secondary" className="text-xs">Vegetarian</Badge>}
+                      {item.is_vegan && <Badge variant="secondary" className="text-xs">Vegan</Badge>}
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        {qty > 0 ? (
+                          <>
+                            <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={() => setQuantities(p => ({ ...p, [item.id]: Math.max(0, qty - 1) }))}>
+                              <Minus className="h-4 w-4" />
+                            </Button>
+                            <span className="w-6 text-center">{qty}</span>
+                          </>
+                        ) : null}
+                        <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={() => setQuantities(p => ({ ...p, [item.id]: (p[item.id] || 0) + 1 }))}>
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      {qty > 0 && (
+                        <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={() => handleAddToCart(item)}>
+                          Add to Cart
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
+
+          {filteredMenu?.length === 0 && !menuLoading && (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">No menu items available.</p>
+            </div>
+          )}
         </div>
       </main>
-      
       <Footer />
     </div>
   );

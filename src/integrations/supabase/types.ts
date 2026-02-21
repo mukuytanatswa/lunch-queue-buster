@@ -68,6 +68,133 @@ export type Database = {
         }
         Relationships: []
       }
+      group_order_items: {
+        Row: {
+          created_at: string | null
+          group_order_id: string
+          id: string
+          menu_item_id: string | null
+          quantity: number
+          special_instructions: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          group_order_id: string
+          id?: string
+          menu_item_id?: string | null
+          quantity?: number
+          special_instructions?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          group_order_id?: string
+          id?: string
+          menu_item_id?: string | null
+          quantity?: number
+          special_instructions?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_order_items_group_order_id_fkey"
+            columns: ["group_order_id"]
+            isOneToOne: false
+            referencedRelation: "group_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_order_items_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_order_members: {
+        Row: {
+          group_order_id: string
+          id: string
+          joined_at: string | null
+          nickname: string | null
+          user_id: string
+        }
+        Insert: {
+          group_order_id: string
+          id?: string
+          joined_at?: string | null
+          nickname?: string | null
+          user_id: string
+        }
+        Update: {
+          group_order_id?: string
+          id?: string
+          joined_at?: string | null
+          nickname?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_order_members_group_order_id_fkey"
+            columns: ["group_order_id"]
+            isOneToOne: false
+            referencedRelation: "group_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_orders: {
+        Row: {
+          created_at: string | null
+          creator_id: string
+          delivery_address: string | null
+          delivery_instructions: string | null
+          expires_at: string | null
+          id: string
+          invite_code: string
+          name: string
+          status: string
+          updated_at: string | null
+          vendor_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          creator_id: string
+          delivery_address?: string | null
+          delivery_instructions?: string | null
+          expires_at?: string | null
+          id?: string
+          invite_code?: string
+          name?: string
+          status?: string
+          updated_at?: string | null
+          vendor_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          creator_id?: string
+          delivery_address?: string | null
+          delivery_instructions?: string | null
+          expires_at?: string | null
+          id?: string
+          invite_code?: string
+          name?: string
+          status?: string
+          updated_at?: string | null
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_orders_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       menu_items: {
         Row: {
           allergens: string[] | null

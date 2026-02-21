@@ -2,48 +2,21 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import VendorCard from "@/components/VendorCard";
-
-const vendors = [
-  {
-    id: "1",
-    name: "Food Science",
-    image: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1974&q=80",
-    cuisineType: "Fast Food",
-    rating: 4.5,
-    deliveryTime: "15-25 min",
-    location: "Upper Campus"
-  },
-  {
-    id: "2",
-    name: "Health Sciences Cafe",
-    image: "https://images.unsplash.com/photo-1565895405138-6c3a1555da6a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80",
-    cuisineType: "Healthy",
-    rating: 4.2,
-    deliveryTime: "20-30 min",
-    location: "Medical Campus",
-    featured: true
-  },
-  {
-    id: "3",
-    name: "Engineering Eatery",
-    image: "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1974&q=80",
-    cuisineType: "Mixed",
-    rating: 4.7,
-    deliveryTime: "10-20 min",
-    location: "Upper Campus"
-  },
-  {
-    id: "4",
-    name: "Arts Cafe",
-    image: "https://images.unsplash.com/photo-1559948271-7d5c98d1e415?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1974&q=80",
-    cuisineType: "Cafe",
-    rating: 4.0,
-    deliveryTime: "15-25 min",
-    location: "Middle Campus"
-  }
-];
+import { useVendors } from "@/hooks/useVendors";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
+import { useState } from "react";
 
 const Vendors = () => {
+  const { data: vendors, isLoading, error } = useVendors();
+  const [search, setSearch] = useState('');
+
+  const filtered = vendors?.filter(v =>
+    v.name.toLowerCase().includes(search.toLowerCase()) ||
+    v.cuisine_type.toLowerCase().includes(search.toLowerCase()) ||
+    v.location.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -52,14 +25,54 @@ const Vendors = () => {
         <div className="container mx-auto px-4">
           <div className="mb-8">
             <h1 className="text-3xl font-bold mb-2">Campus Vendors</h1>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground mb-4">
               Order from your favorite food spots across UCT campus
             </p>
+            <div className="relative max-w-md">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search vendors, cuisines..."
+                className="pl-9"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+            </div>
           </div>
+
+          {isLoading && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6].map(i => (
+                <div key={i} className="h-72 rounded-xl bg-muted animate-pulse" />
+              ))}
+            </div>
+          )}
+
+          {error && (
+            <div className="text-center py-12">
+              <p className="text-destructive mb-2">Failed to load vendors</p>
+              <p className="text-muted-foreground text-sm">Please try again later</p>
+            </div>
+          )}
+
+          {filtered && filtered.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">No vendors found matching your search.</p>
+            </div>
+          )}
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {vendors.map((vendor) => (
-              <VendorCard key={vendor.id} {...vendor} />
+            {filtered?.map((vendor) => (
+              <VendorCard
+                key={vendor.id}
+                id={vendor.id}
+                name={vendor.name}
+                image={vendor.image_url || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800'}
+                cuisineType={vendor.cuisine_type}
+                rating={Number(vendor.rating) || 0}
+                deliveryTime={`${vendor.delivery_time_min}-${vendor.delivery_time_max} min`}
+                location={vendor.location}
+                featured={vendor.is_featured || false}
+              />
             ))}
           </div>
         </div>
