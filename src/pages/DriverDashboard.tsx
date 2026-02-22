@@ -522,7 +522,7 @@ const DriverDashboard = () => {
                         </p>
                       </div>
                       <div className="text-right">
-                        <div className="font-semibold">$8.50</div>
+                        <div className="font-semibold">R8.50</div>
                         <div className="flex items-center gap-1">
                           <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                           <span className="text-sm">5.0</span>

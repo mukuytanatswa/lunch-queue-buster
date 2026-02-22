@@ -2,6 +2,8 @@
 
 This document summarizes the functional features added to the app. Run the Supabase migration and configure env where noted.
 
+**How orders connect:** Students place orders for a vendor; that same vendor (same `vendor_id`) sees the order in Vendor Dashboard. Vendors must have their user account linked to the `vendors` row (`user_id`). Drivers see orders that are ready and unassigned, then accept and deliver. See **docs/ORDER_FLOW.md** for the full flow. **Currency:** All amounts are in South African Rand (R). Payment options: **docs/PAYMENTS_SA.md**.
+
 ## Setup
 
 1. **Run Supabase migration**  

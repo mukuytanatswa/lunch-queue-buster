@@ -3,8 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useVendorByUser } from '@/hooks/useVendorByUser';
 import { useVendorOrders } from '@/hooks/useVendorOrders';
+import { useVendorPayouts } from '@/hooks/useVendorPayouts';
 import { useUpdateOrderStatus } from '@/hooks/useOrders';
 import { usePromotionsByVendor, useCreatePromotion } from '@/hooks/usePromotions';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -30,6 +33,7 @@ const VendorDashboard = () => {
   const { user, profile, loading } = useAuth();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(true);
+  const queryClient = useQueryClient();
   const { data: vendor } = useVendorByUser(user?.id);
   const { data: vendorOrders, isLoading: ordersLoading } = useVendorOrders(vendor?.id);
   const updateStatus = useUpdateOrderStatus();
@@ -46,6 +50,31 @@ const VendorDashboard = () => {
       navigate('/');
     }
   }, [user, profile, loading, navigate]);
+
+  // Live updates: when a student places an order for this vendor, refresh the orders list
+  useEffect(() => {
+    if (!vendor?.id) return;
+    const channel = supabase
+      .channel(`vendor-orders:${vendor.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'orders',
+        filter: `vendor_id=eq.${vendor.id}`,
+      }, () => {
+        queryClient.invalidateQueries({ queryKey: ['vendor_orders', vendor.id] });
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'orders',
+        filter: `vendor_id=eq.${vendor.id}`,
+      }, () => {
+        queryClient.invalidateQueries({ queryKey: ['vendor_orders', vendor.id] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [vendor?.id, queryClient]);
 
   const todayOrders = vendorOrders?.filter(o => {
     const d = new Date(o.created_at!);
@@ -277,7 +306,7 @@ const VendorDashboard = () => {
                       Juicy beef patty with fresh vegetables
                     </p>
                     <div className="flex justify-between items-center">
-                      <span className="font-semibold">$12.99</span>
+                      <span className="font-semibold">R12.99</span>
                       <Button variant="outline" size="sm">Edit</Button>
                     </div>
                   </CardContent>
@@ -294,7 +323,7 @@ const VendorDashboard = () => {
                   <CardTitle>Weekly Revenue</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">$2,847</div>
+                  <div className="text-3xl font-bold">R2 847.00</div>
                   <p className="text-sm text-muted-foreground">+15% from last week</p>
                 </CardContent>
               </Card>
