@@ -22,6 +22,7 @@ import DriverDashboard from "./pages/DriverDashboard";
 import InviteAccept from "./pages/InviteAccept";
 import GroupOrder from "./pages/GroupOrder";
 import JoinGroupOrder from "./pages/JoinGroupOrder";
+import OrderTracking from "./pages/OrderTracking";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +50,7 @@ const App = () => (
               <Route path="/invite" element={<InviteAccept />} />
               <Route path="/group-order/:id" element={<GroupOrder />} />
               <Route path="/join/:code" element={<JoinGroupOrder />} />
+              <Route path="/orders/:orderId/track" element={<OrderTracking />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

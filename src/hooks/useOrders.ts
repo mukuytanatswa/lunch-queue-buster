@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { generateDeliveryPin } from '@/lib/delivery';
 
 export const useOrders = () => {
   const { user } = useAuth();
@@ -28,6 +29,88 @@ export const useOrders = () => {
   });
 };
 
+/** Single order by ID (e.g. for tracking page) */
+export function useOrderById(orderId: string | undefined) {
+  return useQuery({
+    queryKey: ['order', orderId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          order_items (*, menu_items (name, image_url)),
+          vendors (name, image_url, location)
+        `)
+        .eq('id', orderId!)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!orderId,
+  });
+}
+
+export const useUpdateOrderStatus = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ orderId, status }: { orderId: string; status: string }) => {
+      const updates: Record<string, unknown> = { status, updated_at: new Date().toISOString() };
+      if (status === 'picked_up') updates.pickup_time = new Date().toISOString();
+      if (status === 'delivered') {
+        updates.delivered_time = new Date().toISOString();
+        updates.proof_of_delivery_photo_url = null; // Can be set by driver separately
+      }
+      const { error } = await supabase.from('orders').update(updates).eq('id', orderId);
+      if (error) throw error;
+    },
+    onSuccess: (_, { orderId }) => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['order', orderId] });
+      queryClient.invalidateQueries({ queryKey: ['vendor_orders'] });
+    },
+  });
+};
+
+export const useCancelOrder = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (orderId: string) => {
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+        .eq('id', orderId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['vendor_orders'] });
+    },
+  });
+};
+
+export const useSetProofOfDelivery = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ orderId, photoUrl }: { orderId: string; photoUrl: string }) => {
+      const { error } = await supabase
+        .from('orders')
+        .update({
+          proof_of_delivery_photo_url: photoUrl,
+          status: 'delivered',
+          delivered_time: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', orderId);
+      if (error) throw error;
+    },
+    onSuccess: (_, { orderId }) => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['order', orderId] });
+      queryClient.invalidateQueries({ queryKey: ['vendor_orders'] });
+    },
+  });
+};
+
 interface PlaceOrderInput {
   vendorId: string;
   items: { menuItemId: string; name: string; quantity: number; unitPrice: number }[];
@@ -38,6 +121,11 @@ interface PlaceOrderInput {
   subtotal: number;
   deliveryFee: number;
   totalAmount: number;
+  paymentMethod?: 'cash' | 'card' | 'payshap';
+  scheduledFor?: string; // ISO datetime for pre-order
+  pickupPointId?: string | null;
+  promotionCode?: string | null;
+  payshapReference?: string | null;
 }
 
 export const usePlaceOrder = () => {
@@ -48,7 +136,10 @@ export const usePlaceOrder = () => {
     mutationFn: async (input: PlaceOrderInput) => {
       if (!user) throw new Error('Must be logged in to place order');
 
-      // Create the order
+      const deliveryPin = generateDeliveryPin();
+      const now = new Date();
+      const cancellationDeadline = new Date(now.getTime() + 10 * 60 * 1000).toISOString();
+
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
@@ -61,17 +152,21 @@ export const usePlaceOrder = () => {
           subtotal: input.subtotal,
           delivery_fee: input.deliveryFee,
           total_amount: input.totalAmount,
-          order_number: '', // Will be auto-set by trigger
+          order_number: '',
           status: 'pending',
-          payment_status: 'pending',
-          payment_method: 'cash',
+          payment_status: input.paymentMethod === 'cash' ? 'pending' : input.paymentMethod === 'payshap' ? 'pending' : 'pending',
+          payment_method: input.paymentMethod || 'cash',
+          delivery_pin: deliveryPin,
+          cancellation_deadline: cancellationDeadline,
+          scheduled_for: input.scheduledFor || null,
+          pickup_point_id: input.pickupPointId || null,
+          payshap_reference: input.payshapReference || null,
         })
         .select()
         .single();
 
       if (orderError) throw orderError;
 
-      // Create order items
       const orderItems = input.items.map(item => ({
         order_id: order.id,
         menu_item_id: item.menuItemId,
@@ -86,10 +181,11 @@ export const usePlaceOrder = () => {
 
       if (itemsError) throw itemsError;
 
-      return order;
+      return { ...order, delivery_pin: deliveryPin };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['vendor_orders'] });
     },
   });
 };

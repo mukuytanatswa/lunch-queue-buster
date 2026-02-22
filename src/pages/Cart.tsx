@@ -1,27 +1,43 @@
-
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Trash2, Plus, Minus, MapPin, AlertCircle, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Trash2, Plus, Minus, MapPin, AlertCircle, CheckCircle, CreditCard, Banknote, Smartphone } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/hooks/useAuth';
 import { usePlaceOrder } from '@/hooks/useOrders';
+import { useVendor } from '@/hooks/useVendors';
+import { usePickupPoints } from '@/hooks/usePickupPoints';
+import { getDynamicDeliveryFee } from '@/lib/delivery';
+import { requestPayshapPayment } from '@/lib/payshap';
 
 const Cart = () => {
   const navigate = useNavigate();
-  const { items, updateQuantity, removeItem, clearCart, subtotal, deliveryFee, serviceFee, total, totalItems } = useCart();
+  const { items, updateQuantity, removeItem, clearCart, subtotal, serviceFee, totalItems } = useCart();
+  const vendorId = items[0]?.vendorId;
+  const { data: vendor } = useVendor(vendorId);
+  const { data: pickupPoints } = usePickupPoints();
+  const dynamicDeliveryFee = items.length > 0 && vendor ? getDynamicDeliveryFee(Number(vendor.delivery_fee) || 15) : 0;
+  const deliveryFee = items.length > 0 ? dynamicDeliveryFee : 0;
+  const total = items.length > 0 ? subtotal + deliveryFee + serviceFee : 0;
+
   const { user, profile } = useAuth();
   const placeOrder = usePlaceOrder();
   const [isCheckoutDialogOpen, setIsCheckoutDialogOpen] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [deliveryLocation, setDeliveryLocation] = useState('');
   const [specialInstructions, setSpecialInstructions] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'payshap'>('cash');
+  const [scheduledFor, setScheduledFor] = useState('');
+  const [pickupPointId, setPickupPointId] = useState<string | null>(null);
+  const [payshapShapId, setPayshapShapId] = useState('');
 
   const handlePlaceOrder = async () => {
     if (!user) {
@@ -33,12 +49,30 @@ const Cart = () => {
       toast.error('Please provide a delivery location');
       return;
     }
+    if (paymentMethod === 'payshap' && !payshapShapId.trim()) {
+      toast.error('Enter your ShapID (mobile or alias) for Payshap');
+      return;
+    }
 
-    // Group items by vendor
     const vendorId = items[0]?.vendorId;
+    let payshapRef: string | null = null;
+    if (paymentMethod === 'payshap') {
+      const result = await requestPayshapPayment({
+        amount: total,
+        currency: 'ZAR',
+        reference: `QB-${Date.now()}`,
+        customerShapId: payshapShapId.trim(),
+        description: `QuickBite order`,
+      });
+      if (!result.success) {
+        toast.error(result.error || 'Payshap payment failed');
+        return;
+      }
+      payshapRef = result.reference;
+    }
 
     try {
-      await placeOrder.mutateAsync({
+      const result = await placeOrder.mutateAsync({
         vendorId,
         items: items.map(i => ({
           menuItemId: i.menuItemId,
@@ -53,15 +87,21 @@ const Cart = () => {
         subtotal,
         deliveryFee,
         totalAmount: total,
+        paymentMethod,
+        scheduledFor: scheduledFor || undefined,
+        pickupPointId: pickupPointId || undefined,
+        payshapReference: payshapRef,
       });
 
       clearCart();
       setIsCheckoutDialogOpen(false);
       setOrderPlaced(true);
-
+      if (result?.delivery_pin) {
+        toast.success(`Order placed! Your delivery PIN: ${result.delivery_pin}. Share with driver to receive your meal.`);
+      }
       setTimeout(() => navigate('/orders'), 2000);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to place order');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to place order');
     }
   };
 
@@ -157,13 +197,46 @@ const Cart = () => {
             <DialogTitle>Complete Your Order</DialogTitle>
             <DialogDescription>Provide your delivery details.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+              <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Payment method</Label>
+              <RadioGroup value={paymentMethod} onValueChange={(v: 'cash' | 'card' | 'payshap') => setPaymentMethod(v)} className="flex flex-col gap-2">
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="cash" id="cash" />
+                  <Label htmlFor="cash" className="flex items-center gap-2 font-normal cursor-pointer"><Banknote className="h-4 w-4" /> Cash on delivery</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="card" id="card" />
+                  <Label htmlFor="card" className="flex items-center gap-2 font-normal cursor-pointer"><CreditCard className="h-4 w-4" /> Card (pay on delivery)</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="payshap" id="payshap" />
+                  <Label htmlFor="payshap" className="flex items-center gap-2 font-normal cursor-pointer"><Smartphone className="h-4 w-4" /> Payshap (instant)</Label>
+                </div>
+              </RadioGroup>
+              {paymentMethod === 'payshap' && (
+                <Input placeholder="Your ShapID (mobile or alias)" value={payshapShapId} onChange={e => setPayshapShapId(e.target.value)} className="mt-1" />
+              )}
+            </div>
             <div className="space-y-2">
               <label htmlFor="location" className="text-sm font-medium">Delivery Location <span className="text-destructive">*</span></label>
               <div className="flex">
                 <div className="bg-muted flex items-center px-3 rounded-l-md border border-r-0"><MapPin className="h-4 w-4 text-muted-foreground" /></div>
                 <Input id="location" placeholder="Building and room number" className="rounded-l-none" value={deliveryLocation} onChange={e => setDeliveryLocation(e.target.value)} />
               </div>
+            </div>
+            {pickupPoints && pickupPoints.length > 0 && (
+              <div className="space-y-2">
+                <Label>Shared pickup point (optional – reduces cost)</Label>
+                <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={pickupPointId || ''} onChange={e => setPickupPointId(e.target.value || null)}>
+                  <option value="">None</option>
+                  {pickupPoints.map(pp => <option key={pp.id} value={pp.id}>{pp.name} – {pp.location}</option>)}
+                </select>
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="scheduled">Pre-order: schedule for (optional)</Label>
+              <Input id="scheduled" type="datetime-local" value={scheduledFor} onChange={e => setScheduledFor(e.target.value)} />
             </div>
             <div className="space-y-2">
               <label htmlFor="instructions" className="text-sm font-medium">Special Instructions (Optional)</label>

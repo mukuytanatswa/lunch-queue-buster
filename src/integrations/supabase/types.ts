@@ -326,6 +326,13 @@ export type Database = {
           total_amount: number
           updated_at: string | null
           vendor_id: string | null
+          delivery_pin: string | null
+          proof_of_delivery_photo_url: string | null
+          scheduled_for: string | null
+          cancellation_deadline: string | null
+          pickup_point_id: string | null
+          delivery_batch_id: string | null
+          payshap_reference: string | null
         }
         Insert: {
           created_at?: string | null
@@ -350,6 +357,13 @@ export type Database = {
           total_amount: number
           updated_at?: string | null
           vendor_id?: string | null
+          delivery_pin?: string | null
+          proof_of_delivery_photo_url?: string | null
+          scheduled_for?: string | null
+          cancellation_deadline?: string | null
+          pickup_point_id?: string | null
+          delivery_batch_id?: string | null
+          payshap_reference?: string | null
         }
         Update: {
           created_at?: string | null
@@ -374,6 +388,13 @@ export type Database = {
           total_amount?: number
           updated_at?: string | null
           vendor_id?: string | null
+          delivery_pin?: string | null
+          proof_of_delivery_photo_url?: string | null
+          scheduled_for?: string | null
+          cancellation_deadline?: string | null
+          pickup_point_id?: string | null
+          delivery_batch_id?: string | null
+          payshap_reference?: string | null
         }
         Relationships: [
           {
@@ -426,6 +447,108 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      pickup_points: {
+        Row: {
+          id: string
+          name: string
+          location: string
+          campus_location: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          name: string
+          location: string
+          campus_location?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string
+          location?: string
+          campus_location?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      promotions: {
+        Row: {
+          id: string
+          vendor_id: string
+          code: string | null
+          type: string
+          value: number
+          min_order_amount: number | null
+          valid_from: string
+          valid_until: string
+          is_active: boolean | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          vendor_id: string
+          code?: string | null
+          type?: string
+          value: number
+          min_order_amount?: number | null
+          valid_from?: string
+          valid_until: string
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          vendor_id?: string
+          code?: string | null
+          type?: string
+          value?: number
+          min_order_amount?: number | null
+          valid_from?: string
+          valid_until?: string
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [{ foreignKeyName: "promotions_vendor_id_fkey"; columns: ["vendor_id"]; referencedRelation: "vendors"; referencedColumns: ["id"] }]
+      }
+      vendor_payouts: {
+        Row: {
+          id: string
+          vendor_id: string
+          amount: number
+          status: string
+          reference: string | null
+          paid_at: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          vendor_id: string
+          amount: number
+          status?: string
+          reference?: string | null
+          paid_at?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          vendor_id?: string
+          amount?: number
+          status?: string
+          reference?: string | null
+          paid_at?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [{ foreignKeyName: "vendor_payouts_vendor_id_fkey"; columns: ["vendor_id"]; referencedRelation: "vendors"; referencedColumns: ["id"] }]
       }
       reviews: {
         Row: {

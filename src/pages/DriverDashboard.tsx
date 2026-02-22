@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useDriverProfile, useUpdateDriverStatus, useUnassignedReadyOrders, useDriverAssignedOrders, useAssignDriverToOrder, useUpdateDriverLocation } from '@/hooks/useDrivers';
+import { useUpdateOrderStatus, useSetProofOfDelivery } from '@/hooks/useOrders';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +14,6 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { 
-  Truck, 
   MapPin, 
   Clock, 
   DollarSign, 
@@ -26,9 +27,7 @@ import {
   MessageSquare,
   Camera,
   Filter,
-  Users,
   Target,
-  BarChart3,
   Shield,
   Zap,
   Route,
@@ -37,191 +36,127 @@ import {
   PiggyBank,
   User,
   Car,
-  Bike
+  Bike,
+  KeyRound
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
+import { toast } from 'sonner';
 
 const DriverDashboard = () => {
   const { user, profile, loading } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  
-  // Driver Status State
-  const [isOnline, setIsOnline] = useState(false);
-  const [currentLocation, setCurrentLocation] = useState('Main Campus, UCT');
-  
-  // Current Delivery State  
-  const [currentDelivery, setCurrentDelivery] = useState({
-    id: 'QB-2024-001234',
-    restaurant: {
-      name: 'UCT Cafeteria',
-      address: 'Main Campus, UCT',
-      phone: '021-650-9111'
-    },
-    customer: {
-      name: 'Sarah Chen',
-      address: 'Upper Campus Residence, Room 247',
-      phone: '074-123-4567',
-      instructions: 'Call when you arrive, use side entrance'
-    },
-    items: [
-      { name: 'Chicken Wrap', quantity: 2, price: 35.00 },
-      { name: 'Coke', quantity: 1, price: 10.50 }
-    ],
-    total: 45.50,
-    deliveryFee: 8.50,
-    status: 'heading_to_restaurant', // heading_to_restaurant, at_restaurant, picked_up, heading_to_customer, delivered
-    estimatedTime: '15-20 minutes'
-  });
-  
-  // Earnings State
-  const [todayEarnings, setTodayEarnings] = useState({
-    baseFees: 68.50,
-    distanceBonuses: 12.00,
-    tips: 28.00,
-    peakHourBonuses: 15.00,
-    total: 123.50
-  });
-  
-  // Available Orders State
-  const [availableOrders, setAvailableOrders] = useState([
-    {
-      id: 'QB-001',
-      restaurant: 'UCT Cafeteria',
-      restaurantLocation: 'Main Campus',
-      customerLocation: 'Upper Campus Residence',
-      distance: '0.8km',
-      estimatedTime: '15-20 minutes',
-      deliveryFee: 8.50,
-      orderValue: 45.00,
-      readyTime: 'Ready now',
-      status: 'available'
-    },
-    {
-      id: 'QB-002', 
-      restaurant: 'Pizza Perfect',
-      restaurantLocation: 'Rondebosch',
-      customerLocation: 'Lower Campus',
-      distance: '1.2km',
-      estimatedTime: '20-25 minutes',
-      deliveryFee: 12.00,
-      orderValue: 67.50,
-      readyTime: 'Ready in 5 minutes',
-      status: 'available'
-    },
-    {
-      id: 'QB-003',
-      restaurant: 'Healthy Bites',
-      restaurantLocation: 'Observatory',
-      customerLocation: 'Rondebosch',
-      distance: '2.1km', 
-      estimatedTime: '25-30 minutes',
-      deliveryFee: 15.00,
-      orderValue: 89.00,
-      readyTime: 'Ready in 10 minutes',
-      status: 'available'
-    }
-  ]);
-  
-  // Filter State
-  const [filters, setFilters] = useState({
-    maxDistance: '5km',
-    minPayout: 'R5+',
-    deliveryType: 'all'
-  });
-  
-  // Driver Stats
-  const [driverStats, setDriverStats] = useState({
-    todayDeliveries: 8,
-    todayHours: '4h 32min',
-    rating: 4.8,
-    acceptanceRate: 85,
-    completionRate: 98,
-    onTimeRate: 92,
-    totalDeliveries: 247
-  });
+  const { toast: toastUi } = useToast();
+  const { data: driverProfile } = useDriverProfile(user?.id);
+  const updateDriverStatus = useUpdateDriverStatus(user?.id);
+  const { data: availableOrders } = useUnassignedReadyOrders();
+  const { data: myOrders } = useDriverAssignedOrders(user?.id);
+  const assignDriver = useAssignDriverToOrder();
+  const updateOrderStatus = useUpdateOrderStatus();
+  const setProofOfDelivery = useSetProofOfDelivery();
+  const updateLocation = useUpdateDriverLocation(user?.id);
 
-  // Redirect if not driver
+  const isOnline = !!driverProfile?.is_online;
+  const currentDelivery = myOrders?.[0]; // First active order
+  const [deliveryPinInput, setDeliveryPinInput] = useState('');
+  const [proofPhotoUrl, setProofPhotoUrl] = useState('');
+
   useEffect(() => {
     if (!loading && (!user || profile?.role !== 'driver')) {
       navigate('/');
     }
   }, [user, profile, loading, navigate]);
 
-  // Handler Functions
-  const handleGoOnline = () => {
-    setIsOnline(true);
-    toast({
-      title: "You're now online!",
-      description: "You'll start receiving delivery requests.",
-    });
-  };
-
-  const handleGoOffline = () => {
-    setIsOnline(false);
-    toast({
-      title: "You're now offline",
-      description: "You won't receive new delivery requests.",
-    });
-  };
-
-  const handleAcceptOrder = (orderId: string) => {
-    const order = availableOrders.find(o => o.id === orderId);
-    if (order) {
-      // Set as current delivery
-      toast({
-        title: "Order accepted!",
-        description: `Heading to ${order.restaurant}`,
-      });
-      // Remove from available orders
-      setAvailableOrders(prev => prev.filter(o => o.id !== orderId));
+  const handleGoOnline = async () => {
+    try {
+      await updateDriverStatus.mutateAsync(true);
+      toastUi({ title: "You're now online!", description: "You'll start receiving delivery requests." });
+    } catch {
+      toast.error('Failed to go online');
     }
   };
 
-  const updateDeliveryStatus = (newStatus: string) => {
-    setCurrentDelivery(prev => prev ? { ...prev, status: newStatus } : null);
-    
-    const statusMessages = {
-      'at_restaurant': 'Checked in at restaurant',
-      'picked_up': 'Order picked up, heading to customer',
-      'delivered': 'Delivery completed successfully!'
-    };
-    
-    if (statusMessages[newStatus]) {
-      toast({
-        title: "Status updated",
-        description: statusMessages[newStatus],
-      });
+  const handleGoOffline = async () => {
+    try {
+      await updateDriverStatus.mutateAsync(false);
+      toastUi({ title: "You're now offline", description: "You won't receive new delivery requests." });
+    } catch {
+      toast.error('Failed to go offline');
     }
-    
-    if (newStatus === 'delivered') {
-      setCurrentDelivery(null);
-      setDriverStats(prev => ({ ...prev, todayDeliveries: prev.todayDeliveries + 1 }));
-      setTodayEarnings(prev => ({ ...prev, total: prev.total + currentDelivery?.deliveryFee || 0 }));
+  };
+
+  const handleAcceptOrder = async (orderId: string) => {
+    try {
+      await assignDriver.mutateAsync({ orderId, driverId: user!.id });
+      toast.success('Order accepted! Head to the vendor.');
+    } catch {
+      toast.error('Failed to accept order');
+    }
+  };
+
+  const handlePickedUp = async () => {
+    if (!currentDelivery) return;
+    try {
+      await updateOrderStatus.mutateAsync({ orderId: currentDelivery.id, status: 'picked_up' });
+      toast.success('Order picked up. Head to customer.');
+    } catch {
+      toast.error('Failed to update status');
+    }
+  };
+
+  const handleCompleteDelivery = async () => {
+    if (!currentDelivery) return;
+    const pin = (currentDelivery as any).delivery_pin;
+    if (pin && deliveryPinInput !== pin) {
+      toast.error('Delivery PIN does not match. Ask customer for the correct PIN.');
+      return;
+    }
+    try {
+      if (proofPhotoUrl) {
+        await setProofOfDelivery.mutateAsync({ orderId: currentDelivery.id, photoUrl: proofPhotoUrl });
+      } else {
+        await updateOrderStatus.mutateAsync({ orderId: currentDelivery.id, status: 'delivered' });
+      }
+      toast.success('Delivery completed!');
+      setDeliveryPinInput('');
+      setProofPhotoUrl('');
+    } catch {
+      toast.error('Failed to complete delivery');
     }
   };
 
   const getStatusDisplay = (status: string) => {
-    const statusMap = {
-      'heading_to_restaurant': 'Heading to Restaurant',
-      'at_restaurant': 'At Restaurant',
-      'picked_up': 'Order Picked Up',
-      'heading_to_customer': 'Heading to Customer',
-      'delivered': 'Delivered'
+    const map: Record<string, string> = {
+      confirmed: 'Confirmed',
+      preparing: 'Preparing',
+      ready: 'Ready for pickup',
+      picked_up: 'Out for delivery',
+      delivered: 'Delivered',
     };
-    return statusMap[status] || status;
+    return map[status] || status;
   };
 
   const getStatusColor = (status: string) => {
-    const colorMap = {
-      'heading_to_restaurant': 'bg-yellow-100 text-yellow-800',
-      'at_restaurant': 'bg-blue-100 text-blue-800', 
-      'picked_up': 'bg-purple-100 text-purple-800',
-      'heading_to_customer': 'bg-orange-100 text-orange-800',
-      'delivered': 'bg-green-100 text-green-800'
+    const colorMap: Record<string, string> = {
+      confirmed: 'bg-blue-100 text-blue-800',
+      ready: 'bg-indigo-100 text-indigo-800',
+      picked_up: 'bg-orange-100 text-orange-800',
+      delivered: 'bg-green-100 text-green-800',
     };
     return colorMap[status] || 'bg-gray-100 text-gray-800';
   };
+
+  const driverStats = {
+    todayDeliveries: myOrders?.filter((o: any) => o.status === 'delivered').length ?? 0,
+    todayHours: '–',
+    rating: Number(driverProfile?.rating) || 4.8,
+    acceptanceRate: 85,
+    completionRate: 98,
+    onTimeRate: 92,
+    totalDeliveries: Number(driverProfile?.total_deliveries) || 0,
+  };
+  const todayEarnings = { total: Number(driverProfile?.total_earnings) || 0 };
+  const filters = { maxDistance: '5km', minPayout: 'R5+', deliveryType: 'all' };
+  const setFilters = () => {};
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
@@ -329,124 +264,99 @@ const DriverDashboard = () => {
         </div>
 
 
-        {/* Current Delivery */}
-        {currentDelivery && (
+        {/* Current Delivery - real order from myOrders */}
+        {currentDelivery && (currentDelivery as any).status !== 'delivered' && (
           <Card className="mb-8 border-primary border-2 bg-primary/5">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2 text-xl">
                   <Navigation className="h-6 w-6 text-primary" />
-                  Active Delivery
+                  Active Delivery – Order #{(currentDelivery as any).order_number}
                 </CardTitle>
-                <Badge className={getStatusColor(currentDelivery.status)}>
-                  {getStatusDisplay(currentDelivery.status)}
+                <Badge className={getStatusColor((currentDelivery as any).status)}>
+                  {getStatusDisplay((currentDelivery as any).status)}
                 </Badge>
               </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {/* Order Info */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <h4 className="font-semibold text-lg mb-3">Order Details</h4>
                     <div className="space-y-2">
-                      <div className="font-medium">Order {currentDelivery.id}</div>
                       <div className="text-sm text-muted-foreground">
-                        {currentDelivery.items.map((item, index) => (
-                          <div key={index}>{item.quantity}x {item.name}</div>
+                        {(currentDelivery as any).order_items?.map((item: any) => (
+                          <div key={item.id}>{item.quantity}x {item.menu_items?.name}</div>
                         ))}
                       </div>
-                      <div className="font-semibold">Total: R{currentDelivery.total.toFixed(2)}</div>
-                      <div className="text-green-600 font-semibold">
-                        Your earnings: R{currentDelivery.deliveryFee.toFixed(2)}
-                      </div>
+                      <div className="font-semibold">Total: R{Number((currentDelivery as any).total_amount).toFixed(2)}</div>
+                      <div className="text-green-600 font-semibold">Your fee: R{Number((currentDelivery as any).delivery_fee).toFixed(2)}</div>
+                      {(currentDelivery as any).delivery_pin && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <KeyRound className="h-4 w-4" /> Customer PIN: <span className="font-mono font-semibold">{(currentDelivery as any).delivery_pin}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
-                  
                   <div>
                     <h4 className="font-semibold text-lg mb-3">Locations</h4>
                     <div className="space-y-3">
                       <div className="border rounded-lg p-3">
                         <div className="font-medium">📍 Pickup</div>
-                        <div className="text-sm">{currentDelivery.restaurant.name}</div>
-                        <div className="text-sm text-muted-foreground">{currentDelivery.restaurant.address}</div>
-                        <div className="text-sm text-blue-600">{currentDelivery.restaurant.phone}</div>
+                        <div className="text-sm">{(currentDelivery as any).vendors?.name}</div>
+                        <div className="text-sm text-muted-foreground">{(currentDelivery as any).vendors?.location}</div>
                       </div>
                       <div className="border rounded-lg p-3">
                         <div className="font-medium">🏠 Delivery</div>
-                        <div className="text-sm">{currentDelivery.customer.name}</div>
-                        <div className="text-sm text-muted-foreground">{currentDelivery.customer.address}</div>
-                        <div className="text-sm text-blue-600">{currentDelivery.customer.phone}</div>
-                        {currentDelivery.customer.instructions && (
-                          <div className="text-sm text-orange-600 mt-1">
-                            📝 {currentDelivery.customer.instructions}
-                          </div>
+                        <div className="text-sm">{(currentDelivery as any).customer_name}</div>
+                        <div className="text-sm text-muted-foreground">{(currentDelivery as any).delivery_address}</div>
+                        <div className="text-sm text-blue-600">{(currentDelivery as any).customer_phone}</div>
+                        {(currentDelivery as any).delivery_instructions && (
+                          <div className="text-sm text-orange-600 mt-1">📝 {(currentDelivery as any).delivery_instructions}</div>
                         )}
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Action Buttons */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <Button 
-                    size="lg" 
-                    className="flex items-center gap-2"
-                    onClick={() => window.open(`https://maps.google.com/?q=${currentDelivery.customer.address}`, '_blank')}
-                  >
-                    <Navigation className="h-4 w-4" />
-                    Navigate
+                  <Button size="lg" className="flex items-center gap-2" asChild>
+                    <a href={`https://maps.google.com/?q=${encodeURIComponent((currentDelivery as any).delivery_address)}`} target="_blank" rel="noopener noreferrer">
+                      <Navigation className="h-4 w-4" />Navigate
+                    </a>
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    size="lg" 
-                    className="flex items-center gap-2"
-                    onClick={() => window.open(`tel:${currentDelivery.customer.phone}`, '_self')}
-                  >
-                    <Phone className="h-4 w-4" />
-                    Call Customer
+                  <Button variant="outline" size="lg" className="flex items-center gap-2" asChild>
+                    <a href={`tel:${(currentDelivery as any).customer_phone}`}><Phone className="h-4 w-4" />Call Customer</a>
                   </Button>
-                  <Button 
-                    variant="secondary" 
-                    size="lg" 
-                    className="flex items-center gap-2"
-                  >
-                    <MessageSquare className="h-4 w-4" />
-                    Message
-                  </Button>
-                  <Button 
-                    variant="destructive" 
-                    size="lg" 
-                    className="flex items-center gap-2"
-                  >
-                    <AlertCircle className="h-4 w-4" />
-                    Report Issue
+                  <Button variant="outline" size="lg" className="flex items-center gap-2" onClick={() => {
+                    if (!navigator.geolocation) { toast.error('Geolocation not supported'); return; }
+                    navigator.geolocation.getCurrentPosition(
+                      (pos) => {
+                        updateLocation.mutateAsync({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                        toast.success('Location shared with customer');
+                      },
+                      () => toast.error('Could not get location')
+                    );
+                  }} disabled={updateLocation.isPending}>
+                    <MapPin className="h-4 w-4" />Share my location
                   </Button>
                 </div>
 
-                {/* Status Update Buttons */}
                 <div className="border-t pt-4">
-                  <h5 className="font-medium mb-3">Update Status:</h5>
+                  <h5 className="font-medium mb-3">Update Status</h5>
                   <div className="flex flex-wrap gap-2">
-                    {currentDelivery.status === 'heading_to_restaurant' && (
-                      <Button onClick={() => updateDeliveryStatus('at_restaurant')}>
-                        ✅ Arrived at Restaurant
-                      </Button>
+                    {['confirmed', 'ready'].includes((currentDelivery as any).status) && (
+                      <Button onClick={handlePickedUp} disabled={updateOrderStatus.isPending}>📦 Order Picked Up – Heading to customer</Button>
                     )}
-                    {currentDelivery.status === 'at_restaurant' && (
-                      <Button onClick={() => updateDeliveryStatus('picked_up')}>
-                        📦 Order Picked Up
-                      </Button>
-                    )}
-                    {currentDelivery.status === 'picked_up' && (
-                      <Button onClick={() => updateDeliveryStatus('heading_to_customer')}>
-                        🚗 Heading to Customer
-                      </Button>
-                    )}
-                    {currentDelivery.status === 'heading_to_customer' && (
-                      <div className="flex gap-2">
-                        <Button onClick={() => updateDeliveryStatus('delivered')} className="bg-green-600 hover:bg-green-700">
-                          📷 Take Photo & Complete
+                    {(currentDelivery as any).status === 'picked_up' && (
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <Label>Delivery PIN (from customer)</Label>
+                          <Input type="text" placeholder="4-digit PIN" value={deliveryPinInput} onChange={e => setDeliveryPinInput(e.target.value)} className="w-24 font-mono" />
+                        </div>
+                        <Input placeholder="Proof of delivery photo URL (optional)" value={proofPhotoUrl} onChange={e => setProofPhotoUrl(e.target.value)} />
+                        <Button onClick={handleCompleteDelivery} className="bg-green-600 hover:bg-green-700" disabled={updateOrderStatus.isPending}>
+                          ✅ Complete delivery
                         </Button>
                       </div>
                     )}
@@ -526,66 +436,41 @@ const DriverDashboard = () => {
             <div className="flex justify-between items-center">
               <h3 className="text-xl font-semibold">Available Deliveries</h3>
               <Badge variant="outline" className="text-lg px-3 py-1">
-                {isOnline ? `${availableOrders.length} orders nearby` : "Go online to see orders"}
+                {isOnline ? `${availableOrders?.length ?? 0} orders nearby` : "Go online to see orders"}
               </Badge>
             </div>
             
             {isOnline ? (
               <div className="space-y-4">
-                {availableOrders.map((order) => (
+                {!availableOrders?.length && <p className="text-muted-foreground">No orders available right now. Orders appear when vendors mark them ready.</p>}
+                {availableOrders?.map((order: any) => (
                   <Card key={order.id} className="hover:shadow-lg transition-all duration-200 border-l-4 border-l-primary">
                     <CardContent className="p-6">
                       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        {/* Order Details */}
                         <div className="lg:col-span-2">
                           <div className="flex items-center gap-3 mb-4">
-                            <h4 className="font-bold text-lg">{order.restaurant}</h4>
-                            <Badge variant="secondary" className="text-xs">
-                              {order.readyTime}
-                            </Badge>
+                            <h4 className="font-bold text-lg">{order.vendors?.name}</h4>
+                            <Badge variant="secondary" className="text-xs">{order.status}</Badge>
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                             <div className="space-y-2">
                               <div className="flex items-center gap-2">
                                 <MapPin className="h-4 w-4 text-green-600" />
-                                <span><strong>Pickup:</strong> {order.restaurantLocation}</span>
+                                <span><strong>Pickup:</strong> {order.vendors?.location}</span>
                               </div>
                               <div className="flex items-center gap-2">
                                 <Navigation className="h-4 w-4 text-blue-600" />
-                                <span><strong>Delivery:</strong> {order.customerLocation}</span>
-                              </div>
-                            </div>
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2">
-                                <Route className="h-4 w-4 text-purple-600" />
-                                <span><strong>Distance:</strong> {order.distance}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Clock className="h-4 w-4 text-orange-600" />
-                                <span><strong>Est. Time:</strong> {order.estimatedTime}</span>
+                                <span><strong>Delivery:</strong> {order.delivery_address}</span>
                               </div>
                             </div>
                           </div>
                         </div>
-                        
-                        {/* Earnings & Action */}
                         <div className="text-center lg:text-right space-y-3">
                           <div>
-                            <div className="text-3xl font-bold text-green-600">
-                              R{order.deliveryFee.toFixed(2)}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              Delivery fee
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              Order value: R{order.orderValue.toFixed(2)}
-                            </div>
+                            <div className="text-3xl font-bold text-green-600">R{Number(order.delivery_fee).toFixed(2)}</div>
+                            <div className="text-sm text-muted-foreground">Order: R{Number(order.total_amount).toFixed(2)}</div>
                           </div>
-                          <Button 
-                            size="lg" 
-                            className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3"
-                            onClick={() => handleAcceptOrder(order.id)}
-                          >
+                          <Button size="lg" className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3" onClick={() => handleAcceptOrder(order.id)} disabled={assignDriver.isPending}>
                             Accept Delivery
                           </Button>
                         </div>

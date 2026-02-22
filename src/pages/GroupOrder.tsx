@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useMenuItems } from '@/hooks/useVendors';
+import { generateDeliveryPin } from '@/lib/delivery';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
@@ -10,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Copy, Plus, Minus, Users, Clock, Share2 } from 'lucide-react';
+import { Copy, Plus, Minus, Users, Share2 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const GroupOrder = () => {
@@ -18,7 +19,10 @@ const GroupOrder = () => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const placeOrder = usePlaceOrder();
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [groupDeliveryAddress, setGroupDeliveryAddress] = useState('');
+  const [groupDeliveryInstructions, setGroupDeliveryInstructions] = useState('');
 
   const { data: groupOrder, isLoading } = useQuery({
     queryKey: ['group_order', id],
@@ -98,6 +102,69 @@ const GroupOrder = () => {
 
   const myItems = groupItems?.filter(i => i.user_id === user?.id) || [];
   const otherItems = groupItems?.filter(i => i.user_id !== user?.id) || [];
+
+  // Aggregate items by menu_item_id for single order
+  const aggregatedItems = (groupItems || []).reduce((acc: { menu_item_id: string; name: string; unit_price: number; quantity: number }[], item) => {
+    const mid = item.menu_item_id;
+    const menuItem = (item as any).menu_items;
+    const name = menuItem?.name || 'Item';
+    const unitPrice = Number(menuItem?.price || 0);
+    if (!mid) return acc;
+    const existing = acc.find(x => x.menu_item_id === mid);
+    if (existing) existing.quantity += item.quantity;
+    else acc.push({ menu_item_id: mid, name, unit_price: unitPrice, quantity: item.quantity });
+    return acc;
+  }, []);
+  const subtotal = aggregatedItems.reduce((s, i) => s + i.unit_price * i.quantity, 0);
+  const deliveryFee = 15;
+  const serviceFee = 10;
+  const totalAmount = subtotal + deliveryFee + serviceFee;
+  const deliveryAddress = groupDeliveryAddress || groupOrder?.delivery_address || '';
+  const canPlaceGroupOrder = groupOrder?.creator_id === user?.id && groupOrder?.status === 'open' && aggregatedItems.length > 0 && deliveryAddress.trim().length > 0;
+
+  const handlePlaceGroupOrder = async () => {
+    if (!user || !groupOrder || !canPlaceGroupOrder) return;
+    try {
+      const pin = generateDeliveryPin();
+      const cancellationDeadline = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          customer_id: user.id,
+          vendor_id: groupOrder.vendor_id,
+          customer_name: `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || 'Group',
+          delivery_address: deliveryAddress,
+          delivery_instructions: groupDeliveryInstructions || groupOrder.delivery_instructions || null,
+          subtotal,
+          delivery_fee: deliveryFee,
+          total_amount: totalAmount,
+          order_number: '',
+          status: 'pending',
+          payment_status: 'pending',
+          payment_method: 'cash',
+          delivery_pin: pin,
+          cancellation_deadline: cancellationDeadline,
+        })
+        .select()
+        .single();
+      if (orderError) throw orderError;
+      const orderItems = aggregatedItems.map(i => ({
+        order_id: order.id,
+        menu_item_id: i.menu_item_id,
+        quantity: i.quantity,
+        unit_price: i.unit_price,
+        total_price: i.unit_price * i.quantity,
+      }));
+      const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
+      if (itemsError) throw itemsError;
+      await supabase.from('group_orders').update({ status: 'placed', delivery_address: deliveryAddress, delivery_instructions: groupDeliveryInstructions || groupOrder.delivery_instructions }).eq('id', groupOrder.id);
+      queryClient.invalidateQueries({ queryKey: ['group_order', id] });
+      toast.success(`Group order placed! Delivery PIN: ${pin}`);
+      navigate('/orders');
+    } catch (e) {
+      toast.error('Failed to place group order');
+    }
+  };
 
   if (isLoading) {
     return (
@@ -233,9 +300,15 @@ const GroupOrder = () => {
                   </div>
 
                   {groupOrder.creator_id === user?.id && groupOrder.status === 'open' && (
-                    <Button className="w-full mt-4" disabled={!groupItems || groupItems.length === 0}>
-                      Place Group Order
-                    </Button>
+                    <>
+                      <div className="mt-4 space-y-2">
+                        <Input placeholder="Delivery address (required)" value={deliveryAddress} onChange={e => setGroupDeliveryAddress(e.target.value)} />
+                        <Input placeholder="Delivery instructions (optional)" value={groupDeliveryInstructions} onChange={e => setGroupDeliveryInstructions(e.target.value)} />
+                      </div>
+                      <Button className="w-full mt-4" disabled={!canPlaceGroupOrder} onClick={handlePlaceGroupOrder}>
+                        Place Group Order (R{totalAmount.toFixed(2)})
+                      </Button>
+                    </>
                   )}
                 </CardContent>
               </Card>

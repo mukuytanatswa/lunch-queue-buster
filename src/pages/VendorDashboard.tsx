@@ -1,24 +1,69 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useVendorByUser } from '@/hooks/useVendorByUser';
+import { useVendorOrders } from '@/hooks/useVendorOrders';
+import { useUpdateOrderStatus } from '@/hooks/useOrders';
+import { usePromotionsByVendor, useCreatePromotion } from '@/hooks/usePromotions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Store, Users, DollarSign, Clock, Package, Plus, Settings } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Store, Users, DollarSign, Clock, Package, Plus, Settings, Tag, CheckCircle } from 'lucide-react';
 import Navbar from '@/components/Navbar';
+import { format } from 'date-fns';
+import { toast } from 'sonner';
+
+const statusFlow: Record<string, string | null> = {
+  pending: 'confirmed',
+  confirmed: 'preparing',
+  preparing: 'ready',
+  ready: 'picked_up',
+  picked_up: null,
+  delivered: null,
+  cancelled: null,
+};
 
 const VendorDashboard = () => {
   const { user, profile, loading } = useAuth();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(true);
+  const { data: vendor } = useVendorByUser(user?.id);
+  const { data: vendorOrders, isLoading: ordersLoading } = useVendorOrders(vendor?.id);
+  const updateStatus = useUpdateOrderStatus();
+  const { data: promotions } = usePromotionsByVendor(vendor?.id);
+  const createPromotion = useCreatePromotion(vendor?.id || '');
+  const { data: payouts } = useVendorPayouts(vendor?.id);
+  const [promoCode, setPromoCode] = useState('');
+  const [promoType, setPromoType] = useState<'percentage' | 'fixed_amount'>('percentage');
+  const [promoValue, setPromoValue] = useState('');
+  const [promoValidUntil, setPromoValidUntil] = useState('');
 
-  // Redirect if not vendor
   useEffect(() => {
     if (!loading && (!user || profile?.role !== 'vendor')) {
       navigate('/');
     }
   }, [user, profile, loading, navigate]);
+
+  const todayOrders = vendorOrders?.filter(o => {
+    const d = new Date(o.created_at!);
+    const today = new Date();
+    return d.toDateString() === today.toDateString() && o.status !== 'cancelled';
+  }) || [];
+  const todayRevenue = todayOrders.reduce((sum, o) => sum + Number(o.total_amount), 0);
+
+  const handleNextStatus = async (orderId: string, current: string) => {
+    const next = statusFlow[current];
+    if (!next) return;
+    try {
+      await updateStatus.mutateAsync({ orderId, status: next });
+      toast.success('Order status updated');
+    } catch {
+      toast.error('Failed to update status');
+    }
+  };
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
@@ -43,42 +88,42 @@ const VendorDashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Today's Orders</CardTitle>
+              <CardTitle className="text-sm font-medium">Today&apos;s Orders</CardTitle>
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">24</div>
-              <p className="text-xs text-muted-foreground">+12% from yesterday</p>
+              <div className="text-2xl font-bold">{todayOrders.length}</div>
+              <p className="text-xs text-muted-foreground">Order tracking below</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Today's Revenue</CardTitle>
+              <CardTitle className="text-sm font-medium">Today&apos;s Revenue</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">$432</div>
-              <p className="text-xs text-muted-foreground">+8% from yesterday</p>
+              <div className="text-2xl font-bold">R{todayRevenue.toFixed(2)}</div>
+              <p className="text-xs text-muted-foreground">From {todayOrders.length} orders</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Customers</CardTitle>
+              <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">156</div>
-              <p className="text-xs text-muted-foreground">+3 new today</p>
+              <div className="text-2xl font-bold">{vendorOrders?.length ?? 0}</div>
+              <p className="text-xs text-muted-foreground">All time</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg. Prep Time</CardTitle>
+              <CardTitle className="text-sm font-medium">Promotions</CardTitle>
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">18 min</div>
-              <p className="text-xs text-muted-foreground">-2 min improvement</p>
+              <div className="text-2xl font-bold">{promotions?.length ?? 0}</div>
+              <p className="text-xs text-muted-foreground">Active offers</p>
             </CardContent>
           </Card>
         </div>
@@ -112,8 +157,9 @@ const VendorDashboard = () => {
         </Card>
 
         <Tabs defaultValue="orders" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="orders">Orders</TabsTrigger>
+            <TabsTrigger value="promotions">Promotions</TabsTrigger>
             <TabsTrigger value="menu">Menu</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
@@ -121,28 +167,93 @@ const VendorDashboard = () => {
 
           <TabsContent value="orders" className="space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="text-xl font-semibold">Recent Orders</h3>
-              <Button variant="outline">View All Orders</Button>
+              <h3 className="text-xl font-semibold">Order tracking</h3>
             </div>
+            <p className="text-sm text-muted-foreground">Track and update status for each order. Customers see live updates.</p>
+            {ordersLoading && <div className="animate-pulse h-32 rounded-lg bg-muted" />}
+            {!ordersLoading && (!vendorOrders || vendorOrders.length === 0) && (
+              <div className="text-center py-8 text-muted-foreground">No orders yet. Orders will appear here when customers place them.</div>
+            )}
             <div className="space-y-4">
-              {[1, 2, 3].map((order) => (
-                <Card key={order}>
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="font-semibold">Order #00{order}</h4>
-                        <p className="text-sm text-muted-foreground">Customer Name • 2 items</p>
-                        <p className="text-sm">Burger Combo, Fries</p>
+              {vendorOrders?.map((order: any) => {
+                const nextStatus = statusFlow[order.status];
+                const itemsList = order.order_items?.map((i: any) => `${i.quantity}x ${i.menu_items?.name || 'Item'}`).join(', ') || '';
+                return (
+                  <Card key={order.id}>
+                    <CardContent className="p-4">
+                      <div className="flex flex-wrap justify-between items-start gap-2">
+                        <div>
+                          <h4 className="font-semibold">Order #{order.order_number}</h4>
+                          <p className="text-sm text-muted-foreground">{order.customer_name} • {order.order_items?.length || 0} items</p>
+                          <p className="text-sm">{itemsList}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{format(new Date(order.created_at), 'PPp')}{order.scheduled_for ? ` • Scheduled: ${format(new Date(order.scheduled_for), 'PPp')}` : ''}</p>
+                        </div>
+                        <div className="text-right flex flex-col items-end gap-1">
+                          <Badge variant="secondary">{order.status}</Badge>
+                          <p className="text-sm font-semibold">R{Number(order.total_amount).toFixed(2)}</p>
+                          {nextStatus && (
+                            <Button size="sm" onClick={() => handleNextStatus(order.id, order.status)} disabled={updateStatus.isPending}>
+                              Mark {nextStatus === 'confirmed' ? 'Confirmed' : nextStatus === 'preparing' ? 'Preparing' : nextStatus === 'ready' ? 'Ready for pickup' : 'Picked up'}
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <Badge variant="secondary">Preparing</Badge>
-                        <p className="text-sm font-semibold mt-1">$24.99</p>
-                        <p className="text-xs text-muted-foreground">5 min ago</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="promotions" className="space-y-4">
+            <h3 className="text-xl font-semibold">Promotion creation tool</h3>
+            <p className="text-sm text-muted-foreground">Create discounts and time-limited offers for customers.</p>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Tag className="h-5 w-5" />New promotion</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Code (optional)</Label>
+                    <Input placeholder="e.g. LUNCH20" value={promoCode} onChange={e => setPromoCode(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label>Type</Label>
+                    <select className="w-full rounded-md border px-3 py-2" value={promoType} onChange={e => setPromoType(e.target.value as 'percentage' | 'fixed_amount')}>
+                      <option value="percentage">Percentage off</option>
+                      <option value="fixed_amount">Fixed amount off</option>
+                    </select>
+                  </div>
+                  <div>
+                    <Label>Value {promoType === 'percentage' ? '(%)' : '(R)'}</Label>
+                    <Input type="number" placeholder={promoType === 'percentage' ? '20' : '15'} value={promoValue} onChange={e => setPromoValue(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label>Valid until</Label>
+                    <Input type="datetime-local" value={promoValidUntil} onChange={e => setPromoValidUntil(e.target.value)} />
+                  </div>
+                </div>
+                <Button onClick={async () => {
+                  if (!promoValue || !promoValidUntil) { toast.error('Value and valid until required'); return; }
+                  try {
+                    await createPromotion.mutateAsync({ code: promoCode || undefined, type: promoType, value: Number(promoValue), valid_until: new Date(promoValidUntil).toISOString() });
+                    toast.success('Promotion created');
+                    setPromoCode(''); setPromoValue(''); setPromoValidUntil('');
+                  } catch { toast.error('Failed to create'); }
+                }} disabled={createPromotion.isPending}>Create promotion</Button>
+              </CardContent>
+            </Card>
+            <div>
+              <h4 className="font-medium mb-2">Active promotions</h4>
+              {promotions?.length === 0 && <p className="text-sm text-muted-foreground">None yet.</p>}
+              <ul className="space-y-2">
+                {promotions?.map((p: any) => (
+                  <li key={p.id} className="flex justify-between items-center border rounded p-2">
+                    <span>{p.code || 'No code'} – {p.type === 'percentage' ? `${p.value}%` : `R${p.value}`} off until {format(new Date(p.valid_until), 'PP')}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </TabsContent>
 
@@ -214,6 +325,27 @@ const VendorDashboard = () => {
             <div className="space-y-6">
               <Card>
                 <CardHeader>
+                  <CardTitle>Payout system</CardTitle>
+                  <CardDescription>
+                    Earnings are automatically transferred to your registered bank account. Payouts run weekly for completed orders.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {payouts?.length === 0 && <p className="text-sm text-muted-foreground">No payouts yet. Complete orders to accumulate earnings.</p>}
+                    <ul className="text-sm space-y-1">
+                      {payouts?.slice(0, 5).map((p: any) => (
+                        <li key={p.id} className="flex justify-between">
+                          <span>R{Number(p.amount).toFixed(2)} – {p.status}</span>
+                          <span className="text-muted-foreground">{p.paid_at ? new Date(p.paid_at).toLocaleDateString() : 'Pending'}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
                   <CardTitle>Restaurant Information</CardTitle>
                   <CardDescription>
                     Update your restaurant details and contact information
@@ -230,7 +362,7 @@ const VendorDashboard = () => {
                 <CardHeader>
                   <CardTitle>Operating Hours</CardTitle>
                   <CardDescription>
-                    Set your restaurant's operating hours and availability
+                    Set your restaurant&apos;s operating hours and availability
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
