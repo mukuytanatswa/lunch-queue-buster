@@ -158,19 +158,13 @@ const VendorDashboard = () => {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 
-  if (!user || profile?.role !== 'vendor') {
-    return null;
-  }
-
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="pt-20 px-4 md:px-8 max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Vendor Dashboard</h1>
-          <p className="text-muted-foreground">
-            Welcome back, {profile?.first_name}! Manage your restaurant operations.
-          </p>
+          <h1 className="text-3xl font-bold mb-2">{vendor?.name ?? 'Your Restaurant'}</h1>
+          <p className="text-muted-foreground">Manage your restaurant operations</p>
         </div>
 
         {/* Quick Stats */}
@@ -219,28 +213,13 @@ const VendorDashboard = () => {
 
         {/* Restaurant Status */}
         <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Store className="h-5 w-5" />
-              Restaurant Status
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Badge variant={isOpen ? "default" : "secondary"}>
-                  {isOpen ? "Open" : "Closed"}
-                </Badge>
-                <span className="text-sm text-muted-foreground">
-                  Your restaurant is currently {isOpen ? "accepting orders" : "closed for orders"}
-                </span>
+                <Badge variant={isOpen ? "default" : "secondary"}>{isOpen ? "Open" : "Closed"}</Badge>
+                <span className="text-sm text-muted-foreground">{isOpen ? "Accepting orders" : "Not accepting orders"}</span>
               </div>
-              <Button 
-                variant="outline" 
-                onClick={() => setIsOpen(!isOpen)}
-              >
-                {isOpen ? "Close Restaurant" : "Open Restaurant"}
-              </Button>
+              <Button variant="outline" onClick={() => setIsOpen(!isOpen)}>{isOpen ? "Close" : "Open"} Restaurant</Button>
             </div>
           </CardContent>
         </Card>
@@ -265,7 +244,6 @@ const VendorDashboard = () => {
             )}
             <div className="space-y-4">
               {[...(vendorOrders || [])].sort((a: any, b: any) => {
-                // Scheduled orders first, then by created_at desc
                 if (a.scheduled_for && !b.scheduled_for) return -1;
                 if (!a.scheduled_for && b.scheduled_for) return 1;
                 return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
