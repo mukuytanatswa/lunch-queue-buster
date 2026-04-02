@@ -39,8 +39,6 @@ const Navbar = () => {
         return [...baseLinks, { name: 'Orders', path: '/orders' }];
       case 'vendor':
         return [{ name: 'Home', path: '/' }, { name: 'Dashboard', path: '/vendor-dashboard' }, { name: 'About', path: '/about' }];
-      case 'driver':
-        return [{ name: 'Home', path: '/' }, { name: 'Dashboard', path: '/driver-dashboard' }, { name: 'About', path: '/about' }];
       case 'admin':
         return [{ name: 'Home', path: '/' }, { name: 'Admin Panel', path: '/admin-dashboard' }, { name: 'Vendors', path: '/vendors' }, { name: 'About', path: '/about' }];
       default:

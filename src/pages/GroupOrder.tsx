@@ -9,20 +9,24 @@ import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Copy, Plus, Minus, Users, Share2 } from 'lucide-react';
+import { Copy, Plus, Minus, Users, Share2, CreditCard, Smartphone, CalendarClock } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+
+const SERVICE_FEE = 2;
 
 const GroupOrder = () => {
   const { id } = useParams<{ id: string }>();
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const placeOrder = usePlaceOrder();
   const [quantities, setQuantities] = useState<Record<string, number>>({});
-  const [groupDeliveryAddress, setGroupDeliveryAddress] = useState('');
-  const [groupDeliveryInstructions, setGroupDeliveryInstructions] = useState('');
+  const [pickupTime, setPickupTime] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'payfast' | 'payshap'>('payfast');
+  const [isPlacing, setIsPlacing] = useState(false);
 
   const { data: groupOrder, isLoading } = useQuery({
     queryKey: ['group_order', id],
@@ -67,6 +71,23 @@ const GroupOrder = () => {
   const vendorId = groupOrder?.vendor_id;
   const { data: menuItems } = useMenuItems(vendorId || '');
 
+  // Real-time: refresh items when any member adds or removes something
+  useEffect(() => {
+    if (!id) return;
+    const channel = supabase
+      .channel(`group-order-items:${id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'group_order_items',
+        filter: `group_order_id=eq.${id}`,
+      }, () => {
+        queryClient.invalidateQueries({ queryKey: ['group_order_items', id] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [id, queryClient]);
+
   const inviteLink = groupOrder ? `${window.location.origin}/join/${groupOrder.invite_code}` : '';
 
   const handleCopyLink = () => {
@@ -103,7 +124,7 @@ const GroupOrder = () => {
   const myItems = groupItems?.filter(i => i.user_id === user?.id) || [];
   const otherItems = groupItems?.filter(i => i.user_id !== user?.id) || [];
 
-  // Aggregate items by menu_item_id for single order
+  // Aggregate items across all members for checkout
   const aggregatedItems = (groupItems || []).reduce((acc: { menu_item_id: string; name: string; unit_price: number; quantity: number }[], item) => {
     const mid = item.menu_item_id;
     const menuItem = (item as any).menu_items;
@@ -115,15 +136,24 @@ const GroupOrder = () => {
     else acc.push({ menu_item_id: mid, name, unit_price: unitPrice, quantity: item.quantity });
     return acc;
   }, []);
+
   const subtotal = aggregatedItems.reduce((s, i) => s + i.unit_price * i.quantity, 0);
-  const deliveryFee = 15;
-  const serviceFee = 10;
-  const totalAmount = subtotal + deliveryFee + serviceFee;
-  const deliveryAddress = groupDeliveryAddress || groupOrder?.delivery_address || '';
-  const canPlaceGroupOrder = groupOrder?.creator_id === user?.id && groupOrder?.status === 'open' && aggregatedItems.length > 0 && deliveryAddress.trim().length > 0;
+  const totalAmount = subtotal + SERVICE_FEE;
+
+  const canPlaceGroupOrder = groupOrder?.creator_id === user?.id
+    && groupOrder?.status === 'open'
+    && aggregatedItems.length > 0
+    && !!pickupTime;
 
   const handlePlaceGroupOrder = async () => {
     if (!user || !groupOrder || !canPlaceGroupOrder) return;
+    const scheduled = new Date(pickupTime);
+    const minTime = new Date(Date.now() + 30 * 60 * 1000);
+    if (scheduled < minTime) {
+      toast.error('Pickup time must be at least 30 minutes from now');
+      return;
+    }
+    setIsPlacing(true);
     try {
       const pin = generateDeliveryPin();
       const cancellationDeadline = new Date(Date.now() + 10 * 60 * 1000).toISOString();
@@ -133,17 +163,17 @@ const GroupOrder = () => {
           customer_id: user.id,
           vendor_id: groupOrder.vendor_id,
           customer_name: `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || 'Group',
-          delivery_address: deliveryAddress,
-          delivery_instructions: groupDeliveryInstructions || groupOrder.delivery_instructions || null,
+          delivery_address: null,
           subtotal,
-          delivery_fee: deliveryFee,
+          delivery_fee: 0,
           total_amount: totalAmount,
           order_number: '',
           status: 'pending',
           payment_status: 'pending',
-          payment_method: 'cash',
+          payment_method: paymentMethod,
           delivery_pin: pin,
           cancellation_deadline: cancellationDeadline,
+          scheduled_for: pickupTime,
         })
         .select()
         .single();
@@ -157,12 +187,50 @@ const GroupOrder = () => {
       }));
       const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
       if (itemsError) throw itemsError;
-      await supabase.from('group_orders').update({ status: 'placed', delivery_address: deliveryAddress, delivery_instructions: groupDeliveryInstructions || groupOrder.delivery_instructions }).eq('id', groupOrder.id);
+      await supabase.from('group_orders').update({ status: 'placed' }).eq('id', groupOrder.id);
       queryClient.invalidateQueries({ queryKey: ['group_order', id] });
-      toast.success(`Group order placed! Delivery PIN: ${pin}`);
+
+      if (paymentMethod === 'payfast') {
+        toast.info('Redirecting to PayFast...');
+        const customerName = `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || user.email || 'Group';
+        const itemDescription = aggregatedItems.map(i => `${i.quantity}x ${i.name}`).join(', ');
+        const { data: pfData, error: pfError } = await supabase.functions.invoke('create-payfast-payment', {
+          body: {
+            orderId: order.id,
+            amount: totalAmount,
+            customerEmail: user.email,
+            customerName,
+            itemDescription: itemDescription.slice(0, 255),
+            returnUrl: `${window.location.origin}/orders`,
+            cancelUrl: `${window.location.origin}/group-order/${groupOrder.id}`,
+          },
+        });
+        if (pfError || !pfData?.payfast_url) {
+          toast.error(pfError?.message || pfData?.error || 'PayFast setup failed');
+          navigate('/orders');
+          return;
+        }
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = pfData.payfast_url;
+        for (const [key, value] of Object.entries(pfData.params as Record<string, string>)) {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = key;
+          input.value = value;
+          form.appendChild(input);
+        }
+        document.body.appendChild(form);
+        form.submit();
+        return;
+      }
+
+      toast.success('Group order placed!');
       navigate('/orders');
-    } catch (e) {
+    } catch {
       toast.error('Failed to place group order');
+    } finally {
+      setIsPlacing(false);
     }
   };
 
@@ -190,8 +258,6 @@ const GroupOrder = () => {
       </div>
     );
   }
-
-  const totalAmount = groupItems?.reduce((sum, i) => sum + Number((i as any).menu_items?.price || 0) * i.quantity, 0) || 0;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -292,8 +358,10 @@ const GroupOrder = () => {
                     </div>
                   )}
 
-                  <div className="border-t pt-3">
-                    <div className="flex justify-between font-semibold">
+                  <div className="border-t pt-3 space-y-1 text-sm">
+                    <div className="flex justify-between text-muted-foreground"><span>Subtotal</span><span>R{subtotal.toFixed(2)}</span></div>
+                    <div className="flex justify-between text-muted-foreground"><span>Service fee</span><span>R{SERVICE_FEE.toFixed(2)}</span></div>
+                    <div className="flex justify-between font-semibold pt-1 border-t">
                       <span>Total</span>
                       <span>R{totalAmount.toFixed(2)}</span>
                     </div>
@@ -301,12 +369,39 @@ const GroupOrder = () => {
 
                   {groupOrder.creator_id === user?.id && groupOrder.status === 'open' && (
                     <>
-                      <div className="mt-4 space-y-2">
-                        <Input placeholder="Delivery address (required)" value={deliveryAddress} onChange={e => setGroupDeliveryAddress(e.target.value)} />
-                        <Input placeholder="Delivery instructions (optional)" value={groupDeliveryInstructions} onChange={e => setGroupDeliveryInstructions(e.target.value)} />
+                      {/* Pickup time */}
+                      <div className="mt-4 space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                        <Label className="text-sm font-medium flex items-center gap-2">
+                          <CalendarClock className="h-4 w-4 text-amber-700" />
+                          Pickup time <span className="text-destructive">*</span>
+                        </Label>
+                        <Input
+                          type="datetime-local"
+                          value={pickupTime}
+                          onChange={e => setPickupTime(e.target.value)}
+                          min={new Date(Date.now() + 30 * 60 * 1000).toISOString().slice(0, 16)}
+                          className="bg-white"
+                        />
+                        <p className="text-xs text-amber-700">Min 30 minutes from now. Everyone collects at the vendor.</p>
                       </div>
-                      <Button className="w-full mt-4" disabled={!canPlaceGroupOrder} onClick={handlePlaceGroupOrder}>
-                        Place Group Order (R{totalAmount.toFixed(2)})
+
+                      {/* Payment method */}
+                      <div className="mt-4 space-y-2">
+                        <Label className="text-sm font-medium">Payment method</Label>
+                        <RadioGroup value={paymentMethod} onValueChange={(v: 'payfast' | 'payshap') => setPaymentMethod(v)} className="flex flex-col gap-2">
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="payfast" id="group-payfast" />
+                            <Label htmlFor="group-payfast" className="flex items-center gap-2 font-normal cursor-pointer"><CreditCard className="h-4 w-4 text-[#1a84c0]" />PayFast (card / EFT / SnapScan)</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="payshap" id="group-payshap" />
+                            <Label htmlFor="group-payshap" className="flex items-center gap-2 font-normal cursor-pointer"><Smartphone className="h-4 w-4" />Payshap (instant EFT)</Label>
+                          </div>
+                        </RadioGroup>
+                      </div>
+
+                      <Button className="w-full mt-4" disabled={!canPlaceGroupOrder || isPlacing} onClick={handlePlaceGroupOrder}>
+                        {isPlacing ? 'Placing...' : `Place Group Order (R${totalAmount.toFixed(2)})`}
                       </Button>
                     </>
                   )}

@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Trash2, Plus, Minus, MapPin, AlertCircle, CheckCircle, CreditCard, Banknote, Smartphone } from 'lucide-react';
+import { ArrowLeft, Trash2, Plus, Minus, AlertCircle, CheckCircle, CreditCard, Smartphone, Tag, X, CalendarClock } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,31 +13,71 @@ import { toast } from 'sonner';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/hooks/useAuth';
 import { usePlaceOrder } from '@/hooks/useOrders';
-import { useVendor } from '@/hooks/useVendors';
-import { usePickupPoints } from '@/hooks/usePickupPoints';
-import { getDynamicDeliveryFee } from '@/lib/delivery';
+import { usePromotionByCode } from '@/hooks/usePromotions';
 import { requestPayshapPayment } from '@/lib/payshap';
+import { supabase } from '@/integrations/supabase/client';
+import { format } from 'date-fns';
 
 const Cart = () => {
   const navigate = useNavigate();
   const { items, updateQuantity, removeItem, clearCart, subtotal, serviceFee, totalItems } = useCart();
   const vendorId = items[0]?.vendorId;
-  const { data: vendor } = useVendor(vendorId);
-  const { data: pickupPoints } = usePickupPoints();
-  const dynamicDeliveryFee = items.length > 0 && vendor ? getDynamicDeliveryFee(Number(vendor.delivery_fee) || 15) : 0;
-  const deliveryFee = items.length > 0 ? dynamicDeliveryFee : 0;
-  const total = items.length > 0 ? subtotal + deliveryFee + serviceFee : 0;
 
   const { user, profile } = useAuth();
   const placeOrder = usePlaceOrder();
   const [isCheckoutDialogOpen, setIsCheckoutDialogOpen] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
-  const [deliveryLocation, setDeliveryLocation] = useState('');
   const [specialInstructions, setSpecialInstructions] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'payshap'>('cash');
-  const [scheduledFor, setScheduledFor] = useState('');
-  const [pickupPointId, setPickupPointId] = useState<string | null>(null);
-  const [payshapShapId, setPayshapShapId] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'payfast' | 'payshap'>('payfast');
+  const [pickupTime, setPickupTime] = useState('');
+  const [promoCodeInput, setPromoCodeInput] = useState('');
+  const [appliedPromoCode, setAppliedPromoCode] = useState<string | null>(null);
+  const { data: promotion, isFetching: promoLoading } = usePromotionByCode(vendorId, appliedPromoCode);
+
+  const discount = (() => {
+    if (!promotion) return 0;
+    const meetsMinimum = !promotion.min_order_amount || subtotal >= Number(promotion.min_order_amount);
+    if (!meetsMinimum) return 0;
+    if (promotion.type === 'percentage') return Math.round(subtotal * (Number(promotion.value) / 100) * 100) / 100;
+    return Math.min(Number(promotion.value), subtotal);
+  })();
+
+  const total = items.length > 0 ? Math.max(0, subtotal + serviceFee - discount) : 0;
+
+  const redirectToPayFast = async (orderId: string) => {
+    const customerName = `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || user?.email || 'Customer';
+    const itemDescription = items.map(i => `${i.quantity}x ${i.name}`).join(', ');
+
+    const { data, error } = await supabase.functions.invoke('create-payfast-payment', {
+      body: {
+        orderId,
+        amount: total,
+        customerEmail: user?.email,
+        customerName,
+        itemDescription: itemDescription.slice(0, 255),
+        returnUrl: `${window.location.origin}/orders`,
+        cancelUrl: `${window.location.origin}/cart`,
+      },
+    });
+
+    if (error || !data?.payfast_url) {
+      throw new Error(error?.message || data?.error || 'PayFast setup failed');
+    }
+
+    // Build a hidden form and POST to PayFast — standard PayFast redirect flow
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = data.payfast_url;
+    for (const [key, value] of Object.entries(data.params as Record<string, string>)) {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = key;
+      input.value = value;
+      form.appendChild(input);
+    }
+    document.body.appendChild(form);
+    form.submit();
+  };
 
   const handlePlaceOrder = async () => {
     if (!user) {
@@ -45,60 +85,66 @@ const Cart = () => {
       navigate('/auth');
       return;
     }
-    if (!deliveryLocation) {
-      toast.error('Please provide a delivery location');
+    if (!pickupTime) {
+      toast.error('Please select a pickup time');
       return;
     }
-    if (paymentMethod === 'payshap' && !payshapShapId.trim()) {
-      toast.error('Enter your ShapID (mobile or alias) for Payshap');
+    const scheduled = new Date(pickupTime);
+    const minTime = new Date(Date.now() + 30 * 60 * 1000);
+    if (scheduled < minTime) {
+      toast.error('Pickup time must be at least 30 minutes from now');
       return;
     }
 
-    const vendorId = items[0]?.vendorId;
-    let payshapRef: string | null = null;
-    if (paymentMethod === 'payshap') {
+    const orderPayload = {
+      vendorId,
+      items: items.map(i => ({
+        menuItemId: i.menuItemId,
+        name: i.name,
+        quantity: i.quantity,
+        unitPrice: i.price,
+      })),
+      customerName: `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || user.email || 'Customer',
+      customerPhone: profile?.phone || undefined,
+      subtotal,
+      totalAmount: total,
+      scheduledFor: pickupTime,
+      promotionCode: appliedPromoCode || undefined,
+    };
+
+    if (paymentMethod === 'payfast') {
+      try {
+        const order = await placeOrder.mutateAsync({ ...orderPayload, paymentMethod: 'payfast' });
+        clearCart();
+        setIsCheckoutDialogOpen(false);
+        toast.info('Redirecting to PayFast...');
+        await redirectToPayFast(order.id);
+      } catch (err: unknown) {
+        toast.error(err instanceof Error ? err.message : 'Failed to initiate PayFast payment');
+      }
+      return;
+    }
+
+    // Payshap flow
+    try {
       const result = await requestPayshapPayment({
         amount: total,
         currency: 'ZAR',
         reference: `QB-${Date.now()}`,
-        customerShapId: payshapShapId.trim(),
         description: `QuickBite order`,
       });
       if (!result.success) {
         toast.error(result.error || 'Payshap payment failed');
         return;
       }
-      payshapRef = result.reference;
-    }
-
-    try {
-      const result = await placeOrder.mutateAsync({
-        vendorId,
-        items: items.map(i => ({
-          menuItemId: i.menuItemId,
-          name: i.name,
-          quantity: i.quantity,
-          unitPrice: i.price,
-        })),
-        deliveryAddress: deliveryLocation,
-        deliveryInstructions: specialInstructions || undefined,
-        customerName: `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || user.email || 'Customer',
-        customerPhone: profile?.phone || undefined,
-        subtotal,
-        deliveryFee,
-        totalAmount: total,
-        paymentMethod,
-        scheduledFor: scheduledFor || undefined,
-        pickupPointId: pickupPointId || undefined,
-        payshapReference: payshapRef,
+      await placeOrder.mutateAsync({
+        ...orderPayload,
+        paymentMethod: 'payshap',
+        payshapReference: result.reference,
       });
-
       clearCart();
       setIsCheckoutDialogOpen(false);
       setOrderPlaced(true);
-      if (result?.delivery_pin) {
-        toast.success(`Order placed! Your delivery PIN: ${result.delivery_pin}. Share with driver to receive your meal.`);
-      }
       setTimeout(() => navigate('/orders'), 2000);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to place order');
@@ -173,7 +219,6 @@ const Cart = () => {
               <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>R{subtotal.toFixed(2)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Delivery Fee</span><span>R{deliveryFee.toFixed(2)}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Service Fee</span><span>R{serviceFee.toFixed(2)}</span></div>
                 <div className="border-t pt-3 flex justify-between font-semibold"><span>Total</span><span>R{total.toFixed(2)}</span></div>
               </div>
@@ -184,7 +229,7 @@ const Cart = () => {
                 Proceed to Checkout
               </Button>
               <div className="mt-4 text-xs text-muted-foreground">
-                <p className="flex items-start gap-1"><AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />Your order will be delivered by student delivery partners</p>
+                <p className="flex items-start gap-1"><AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />All orders are pickup — collect from the vendor at your chosen time</p>
               </div>
             </div>
           </div>
@@ -192,69 +237,97 @@ const Cart = () => {
       </main>
 
       <Dialog open={isCheckoutDialogOpen} onOpenChange={setIsCheckoutDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Complete Your Order</DialogTitle>
-            <DialogDescription>Provide your delivery details.</DialogDescription>
+            <DialogDescription>Choose a pickup time and payment method. All amounts in R (ZAR).</DialogDescription>
           </DialogHeader>
-              <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Payment method</Label>
-              <RadioGroup value={paymentMethod} onValueChange={(v: 'cash' | 'card' | 'payshap') => setPaymentMethod(v)} className="flex flex-col gap-2">
+          <div className="space-y-4 py-4 overflow-y-auto flex-1 min-h-0">
+
+            {/* Pickup time – required */}
+            <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-4">
+              <Label className="text-base font-semibold flex items-center gap-2">
+                <CalendarClock className="h-4 w-4 text-amber-700" />
+                Pickup time <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                type="datetime-local"
+                value={pickupTime}
+                onChange={e => setPickupTime(e.target.value)}
+                min={new Date(Date.now() + 30 * 60 * 1000).toISOString().slice(0, 16)}
+              />
+              <p className="text-xs text-amber-700">Must be at least 30 minutes from now. You will collect your order at the vendor.</p>
+            </div>
+
+            {/* Payment method */}
+            <div className="space-y-2 rounded-lg border border-primary/20 bg-primary/5 p-4">
+              <Label className="text-base font-semibold">How would you like to pay? (ZAR)</Label>
+              <RadioGroup value={paymentMethod} onValueChange={(v: 'payfast' | 'payshap') => setPaymentMethod(v)} className="flex flex-col gap-3">
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="cash" id="cash" />
-                  <Label htmlFor="cash" className="flex items-center gap-2 font-normal cursor-pointer"><Banknote className="h-4 w-4" /> Cash on delivery</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="card" id="card" />
-                  <Label htmlFor="card" className="flex items-center gap-2 font-normal cursor-pointer"><CreditCard className="h-4 w-4" /> Card (pay on delivery)</Label>
+                  <RadioGroupItem value="payfast" id="payfast" />
+                  <Label htmlFor="payfast" className="flex items-center gap-2 font-normal cursor-pointer"><CreditCard className="h-4 w-4 text-[#1a84c0]" />PayFast (card / EFT / SnapScan)</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="payshap" id="payshap" />
-                  <Label htmlFor="payshap" className="flex items-center gap-2 font-normal cursor-pointer"><Smartphone className="h-4 w-4" /> Payshap (instant)</Label>
+                  <Label htmlFor="payshap" className="flex items-center gap-2 font-normal cursor-pointer"><Smartphone className="h-4 w-4" />Payshap (instant EFT)</Label>
                 </div>
               </RadioGroup>
-              {paymentMethod === 'payshap' && (
-                <Input placeholder="Your ShapID (mobile or alias)" value={payshapShapId} onChange={e => setPayshapShapId(e.target.value)} className="mt-1" />
+            </div>
+
+            {/* Promo code */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium flex items-center gap-1"><Tag className="h-4 w-4" />Promo Code (optional)</Label>
+              {appliedPromoCode && promotion ? (
+                <div className="flex items-center gap-2 text-sm bg-green-50 border border-green-200 rounded px-3 py-2">
+                  <span className="text-green-700 flex-1">
+                    <strong>{promotion.code || 'Promo'}</strong> applied — {promotion.type === 'percentage' ? `${promotion.value}% off` : `R${Number(promotion.value).toFixed(2)} off`} (−R{discount.toFixed(2)})
+                  </span>
+                  <Button variant="ghost" size="icon" className="h-5 w-5 text-green-700" onClick={() => { setAppliedPromoCode(null); setPromoCodeInput(''); }}>
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Input placeholder="Enter code" value={promoCodeInput} onChange={e => setPromoCodeInput(e.target.value.toUpperCase())} />
+                  <Button variant="outline" disabled={!promoCodeInput.trim() || promoLoading} onClick={() => {
+                    if (!promoCodeInput.trim()) return;
+                    setAppliedPromoCode(promoCodeInput.trim());
+                  }}>
+                    {promoLoading ? '...' : 'Apply'}
+                  </Button>
+                </div>
+              )}
+              {appliedPromoCode && !promoLoading && !promotion && (
+                <p className="text-xs text-destructive">Code not found or expired for this vendor.</p>
+              )}
+              {appliedPromoCode && promotion && promotion.min_order_amount && subtotal < Number(promotion.min_order_amount) && (
+                <p className="text-xs text-destructive">Minimum order of R{Number(promotion.min_order_amount).toFixed(2)} required for this code.</p>
               )}
             </div>
-            <div className="space-y-2">
-              <label htmlFor="location" className="text-sm font-medium">Delivery Location <span className="text-destructive">*</span></label>
-              <div className="flex">
-                <div className="bg-muted flex items-center px-3 rounded-l-md border border-r-0"><MapPin className="h-4 w-4 text-muted-foreground" /></div>
-                <Input id="location" placeholder="Building and room number" className="rounded-l-none" value={deliveryLocation} onChange={e => setDeliveryLocation(e.target.value)} />
-              </div>
-            </div>
-            {pickupPoints && pickupPoints.length > 0 && (
-              <div className="space-y-2">
-                <Label>Shared pickup point (optional – reduces cost)</Label>
-                <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={pickupPointId || ''} onChange={e => setPickupPointId(e.target.value || null)}>
-                  <option value="">None</option>
-                  {pickupPoints.map(pp => <option key={pp.id} value={pp.id}>{pp.name} – {pp.location}</option>)}
-                </select>
-              </div>
-            )}
-            <div className="space-y-2">
-              <Label htmlFor="scheduled">Pre-order: schedule for (optional)</Label>
-              <Input id="scheduled" type="datetime-local" value={scheduledFor} onChange={e => setScheduledFor(e.target.value)} />
-            </div>
+
+            {/* Special instructions */}
             <div className="space-y-2">
               <label htmlFor="instructions" className="text-sm font-medium">Special Instructions (Optional)</label>
-              <Textarea id="instructions" placeholder="Any special instructions" value={specialInstructions} onChange={e => setSpecialInstructions(e.target.value)} />
+              <Textarea id="instructions" placeholder="Allergies, customisations, etc." value={specialInstructions} onChange={e => setSpecialInstructions(e.target.value)} />
             </div>
+
+            {/* Summary */}
             <div className="border rounded-md p-4 bg-muted/30">
               <div className="font-medium mb-2">Order Summary</div>
-              <div className="text-sm text-muted-foreground">
+              <div className="text-sm text-muted-foreground space-y-1">
+                <div className="flex justify-between"><span>Payment</span><span>{paymentMethod === 'payfast' ? 'PayFast (online)' : 'Payshap (instant)'}</span></div>
+                {pickupTime && <div className="flex justify-between"><span>Pickup time</span><span>{format(new Date(pickupTime), 'PPp')}</span></div>}
                 <div className="flex justify-between"><span>{totalItems} items</span><span>R{subtotal.toFixed(2)}</span></div>
-                <div className="flex justify-between"><span>Fees</span><span>R{(deliveryFee + serviceFee).toFixed(2)}</span></div>
-                <div className="flex justify-between font-medium pt-1 mt-1 border-t"><span>Total</span><span>R{total.toFixed(2)}</span></div>
+                <div className="flex justify-between"><span>Service fee</span><span>R{serviceFee.toFixed(2)}</span></div>
+                {discount > 0 && <div className="flex justify-between text-green-700"><span>Discount</span><span>−R{discount.toFixed(2)}</span></div>}
+                <div className="flex justify-between font-medium pt-1 mt-1 border-t"><span>Total (ZAR)</span><span>R{total.toFixed(2)}</span></div>
               </div>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsCheckoutDialogOpen(false)}>Cancel</Button>
             <Button onClick={handlePlaceOrder} disabled={placeOrder.isPending}>
-              {placeOrder.isPending ? 'Processing...' : 'Place Order'}
+              {placeOrder.isPending ? 'Processing...' : paymentMethod === 'payfast' ? 'Pay with PayFast' : 'Place Order'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -267,8 +340,8 @@ const Cart = () => {
               <CheckCircle className="h-8 w-8" />
             </div>
             <h2 className="text-2xl font-semibold mb-2">Order Placed!</h2>
-            <p className="text-muted-foreground mb-6">Your order has been placed successfully. We'll have it delivered to you soon.</p>
-            <Button asChild><Link to="/orders">Track Your Order</Link></Button>
+            <p className="text-muted-foreground mb-6">Your pre-order is confirmed. Head to the vendor at your selected pickup time.</p>
+            <Button asChild><Link to="/orders">View My Orders</Link></Button>
           </div>
         </DialogContent>
       </Dialog>

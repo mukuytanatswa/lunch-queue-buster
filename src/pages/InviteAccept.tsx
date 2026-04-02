@@ -45,8 +45,6 @@ const InviteAccept = () => {
       // Redirect based on invite type
       if (type === 'vendor') {
         navigate('/vendor-dashboard');
-      } else if (type === 'driver') {
-        navigate('/driver-dashboard');
       } else {
         navigate('/');
       }
@@ -75,7 +73,7 @@ const InviteAccept = () => {
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold text-primary">QuickBite Invite</CardTitle>
           <CardDescription>
-            You've been invited to join QuickBite as {type === 'vendor' ? 'a vendor' : type === 'driver' ? 'a driver' : 'a member'}
+            You've been invited to join QuickBite as {type === 'vendor' ? 'a vendor' : 'a member'}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

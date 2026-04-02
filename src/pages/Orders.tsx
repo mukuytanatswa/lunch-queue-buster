@@ -4,7 +4,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ClockIcon, Package2Icon, CheckCircleIcon, TruckIcon, XCircleIcon, RotateCcw, MapPin, KeyRound } from "lucide-react";
+import { ClockIcon, Package2Icon, CheckCircleIcon, XCircleIcon, RotateCcw, MapPin, ShoppingBag } from "lucide-react";
 import { useOrders, useCancelOrder } from '@/hooks/useOrders';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
@@ -17,9 +17,9 @@ const statusConfig: Record<string, { label: string; icon: any; color: string }> 
   pending: { label: 'Pending', icon: ClockIcon, color: 'bg-yellow-100 text-yellow-800' },
   confirmed: { label: 'Confirmed', icon: CheckCircleIcon, color: 'bg-blue-100 text-blue-800' },
   preparing: { label: 'Preparing', icon: Package2Icon, color: 'bg-purple-100 text-purple-800' },
-  ready: { label: 'Ready for Pickup', icon: Package2Icon, color: 'bg-indigo-100 text-indigo-800' },
-  picked_up: { label: 'On the Way', icon: TruckIcon, color: 'bg-orange-100 text-orange-800' },
-  delivered: { label: 'Delivered', icon: CheckCircleIcon, color: 'bg-green-100 text-green-800' },
+  ready: { label: 'Ready for Pickup', icon: ShoppingBag, color: 'bg-indigo-100 text-indigo-800' },
+  picked_up: { label: 'Ready for Pickup', icon: ShoppingBag, color: 'bg-indigo-100 text-indigo-800' },
+  delivered: { label: 'Collected', icon: CheckCircleIcon, color: 'bg-green-100 text-green-800' },
   cancelled: { label: 'Cancelled', icon: XCircleIcon, color: 'bg-red-100 text-red-800' },
 };
 
@@ -135,15 +135,12 @@ const Orders = () => {
                   </div>
 
                   <div className="flex justify-between items-center border-t pt-4">
-                    <div className="text-sm text-muted-foreground">
-                      Delivery to: {order.delivery_address}
-                    </div>
                     <span className="font-semibold">R{Number(order.total_amount).toFixed(2)}</span>
                   </div>
-                  {order.delivery_pin && order.status !== 'delivered' && order.status !== 'cancelled' && (
-                    <div className="mt-2 flex items-center gap-2 text-sm">
-                      <KeyRound className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">Delivery PIN: <span className="font-mono font-semibold">{order.delivery_pin}</span></span>
+                  {(order as any).scheduled_for && (
+                    <div className="mt-2 flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                      <ClockIcon className="h-4 w-4 flex-shrink-0" />
+                      <span>Pickup at {format(new Date((order as any).scheduled_for), 'PPp')}</span>
                     </div>
                   )}
                   <div className="flex flex-wrap gap-2 mt-4">

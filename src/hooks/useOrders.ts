@@ -114,16 +114,12 @@ export const useSetProofOfDelivery = () => {
 interface PlaceOrderInput {
   vendorId: string;
   items: { menuItemId: string; name: string; quantity: number; unitPrice: number }[];
-  deliveryAddress: string;
-  deliveryInstructions?: string;
   customerName: string;
   customerPhone?: string;
   subtotal: number;
-  deliveryFee: number;
   totalAmount: number;
-  paymentMethod?: 'cash' | 'card' | 'payshap';
-  scheduledFor?: string; // ISO datetime for pre-order
-  pickupPointId?: string | null;
+  paymentMethod?: 'payfast' | 'payshap';
+  scheduledFor: string; // required — every order is a pre-order
   promotionCode?: string | null;
   payshapReference?: string | null;
 }
@@ -147,19 +143,18 @@ export const usePlaceOrder = () => {
           vendor_id: input.vendorId,
           customer_name: input.customerName,
           customer_phone: input.customerPhone,
-          delivery_address: input.deliveryAddress,
-          delivery_instructions: input.deliveryInstructions,
+          delivery_address: null,
           subtotal: input.subtotal,
-          delivery_fee: input.deliveryFee,
+          delivery_fee: 0,
           total_amount: input.totalAmount,
           order_number: '',
           status: 'pending',
-          payment_status: input.paymentMethod === 'cash' ? 'pending' : input.paymentMethod === 'payshap' ? 'pending' : 'pending',
+          payment_status: input.paymentMethod === 'payshap' && input.payshapReference ? 'paid' : 'pending', // PayFast orders are marked paid via ITN webhook
           payment_method: input.paymentMethod || 'cash',
           delivery_pin: deliveryPin,
           cancellation_deadline: cancellationDeadline,
-          scheduled_for: input.scheduledFor || null,
-          pickup_point_id: input.pickupPointId || null,
+          scheduled_for: input.scheduledFor,
+          pickup_point_id: null,
           payshap_reference: input.payshapReference || null,
         })
         .select()

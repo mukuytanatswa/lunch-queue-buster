@@ -18,7 +18,6 @@ import Profile from "./pages/Profile";
 import VendorDetail from "./pages/VendorDetail";
 import VendorDashboard from "./pages/VendorDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
-import DriverDashboard from "./pages/DriverDashboard";
 import InviteAccept from "./pages/InviteAccept";
 import GroupOrder from "./pages/GroupOrder";
 import JoinGroupOrder from "./pages/JoinGroupOrder";
@@ -46,7 +45,6 @@ const App = () => (
               <Route path="/vendor/:id" element={<VendorDetail />} />
               <Route path="/vendor-dashboard" element={<VendorDashboard />} />
               <Route path="/admin-dashboard" element={<AdminDashboard />} />
-              <Route path="/driver-dashboard" element={<DriverDashboard />} />
               <Route path="/invite" element={<InviteAccept />} />
               <Route path="/group-order/:id" element={<GroupOrder />} />
               <Route path="/join/:code" element={<JoinGroupOrder />} />

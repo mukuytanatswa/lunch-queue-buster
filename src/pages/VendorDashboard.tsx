@@ -6,6 +6,7 @@ import { useVendorOrders } from '@/hooks/useVendorOrders';
 import { useVendorPayouts } from '@/hooks/useVendorPayouts';
 import { useUpdateOrderStatus } from '@/hooks/useOrders';
 import { usePromotionsByVendor, useCreatePromotion } from '@/hooks/usePromotions';
+import { useAllMenuItems, useCreateMenuItem, useUpdateMenuItem, useDeleteMenuItem } from '@/hooks/useVendors';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +15,9 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Store, Users, DollarSign, Clock, Package, Plus, Settings, Tag, CheckCircle } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Store, Users, DollarSign, Clock, Package, Plus, Settings, Tag, Pencil, Trash2, EyeOff, Eye } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -23,8 +26,7 @@ const statusFlow: Record<string, string | null> = {
   pending: 'confirmed',
   confirmed: 'preparing',
   preparing: 'ready',
-  ready: 'picked_up',
-  picked_up: null,
+  ready: 'delivered',
   delivered: null,
   cancelled: null,
 };
@@ -44,6 +46,64 @@ const VendorDashboard = () => {
   const [promoType, setPromoType] = useState<'percentage' | 'fixed_amount'>('percentage');
   const [promoValue, setPromoValue] = useState('');
   const [promoValidUntil, setPromoValidUntil] = useState('');
+
+  // Menu management state
+  const { data: menuItems, isLoading: menuLoading } = useAllMenuItems(vendor?.id);
+  const createMenuItem = useCreateMenuItem();
+  const updateMenuItem = useUpdateMenuItem();
+  const deleteMenuItem = useDeleteMenuItem();
+  const [menuDialogOpen, setMenuDialogOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<null | { id: string; vendor_id: string; name: string; price: number; description: string; category: string; image_url: string; is_available: boolean }>(null);
+  const [menuForm, setMenuForm] = useState({ name: '', price: '', description: '', category: '', image_url: '', is_available: true });
+
+  const openAddDialog = () => {
+    setEditingItem(null);
+    setMenuForm({ name: '', price: '', description: '', category: '', image_url: '', is_available: true });
+    setMenuDialogOpen(true);
+  };
+
+  const openEditDialog = (item: typeof editingItem) => {
+    setEditingItem(item);
+    setMenuForm({
+      name: item!.name,
+      price: String(item!.price),
+      description: item!.description || '',
+      category: item!.category || '',
+      image_url: item!.image_url || '',
+      is_available: item!.is_available ?? true,
+    });
+    setMenuDialogOpen(true);
+  };
+
+  const handleMenuSave = async () => {
+    if (!menuForm.name.trim() || !menuForm.price) { toast.error('Name and price are required'); return; }
+    const price = parseFloat(menuForm.price);
+    if (isNaN(price) || price <= 0) { toast.error('Enter a valid price'); return; }
+    try {
+      if (editingItem) {
+        await updateMenuItem.mutateAsync({ id: editingItem.id, vendor_id: editingItem.vendor_id, name: menuForm.name.trim(), price, description: menuForm.description, category: menuForm.category, image_url: menuForm.image_url, is_available: menuForm.is_available });
+        toast.success('Item updated');
+      } else {
+        await createMenuItem.mutateAsync({ vendor_id: vendor!.id, name: menuForm.name.trim(), price, description: menuForm.description, category: menuForm.category, image_url: menuForm.image_url || undefined, is_available: menuForm.is_available });
+        toast.success('Item added');
+      }
+      setMenuDialogOpen(false);
+    } catch { toast.error('Failed to save item'); }
+  };
+
+  const handleDeleteItem = async (id: string, vendorId: string) => {
+    if (!confirm('Delete this menu item?')) return;
+    try {
+      await deleteMenuItem.mutateAsync({ id, vendor_id: vendorId });
+      toast.success('Item deleted');
+    } catch { toast.error('Failed to delete item'); }
+  };
+
+  const handleToggleAvailability = async (item: { id: string; vendor_id: string; is_available: boolean | null }) => {
+    try {
+      await updateMenuItem.mutateAsync({ id: item.id, vendor_id: item.vendor_id, is_available: !item.is_available });
+    } catch { toast.error('Failed to update availability'); }
+  };
 
   useEffect(() => {
     if (!loading && (!user || profile?.role !== 'vendor')) {
@@ -204,25 +264,43 @@ const VendorDashboard = () => {
               <div className="text-center py-8 text-muted-foreground">No orders yet. Orders will appear here when customers place them.</div>
             )}
             <div className="space-y-4">
-              {vendorOrders?.map((order: any) => {
+              {[...(vendorOrders || [])].sort((a: any, b: any) => {
+                // Scheduled orders first, then by created_at desc
+                if (a.scheduled_for && !b.scheduled_for) return -1;
+                if (!a.scheduled_for && b.scheduled_for) return 1;
+                return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+              }).map((order: any) => {
                 const nextStatus = statusFlow[order.status];
                 const itemsList = order.order_items?.map((i: any) => `${i.quantity}x ${i.menu_items?.name || 'Item'}`).join(', ') || '';
                 return (
-                  <Card key={order.id}>
+                  <Card key={order.id} className={order.scheduled_for ? 'border-amber-300 bg-amber-50/30' : ''}>
                     <CardContent className="p-4">
                       <div className="flex flex-wrap justify-between items-start gap-2">
                         <div>
-                          <h4 className="font-semibold">Order #{order.order_number}</h4>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-semibold">Order #{order.order_number}</h4>
+                            {order.scheduled_for && (
+                              <Badge variant="outline" className="border-amber-400 text-amber-700 bg-amber-50">
+                                Pickup {format(new Date(order.scheduled_for), 'PPp')}
+                              </Badge>
+                            )}
+                          </div>
                           <p className="text-sm text-muted-foreground">{order.customer_name} • {order.order_items?.length || 0} items</p>
                           <p className="text-sm">{itemsList}</p>
-                          <p className="text-xs text-muted-foreground mt-1">{format(new Date(order.created_at), 'PPp')}{order.scheduled_for ? ` • Scheduled: ${format(new Date(order.scheduled_for), 'PPp')}` : ''}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Placed {format(new Date(order.created_at), 'PPp')}
+                            {order.scheduled_for ? ` • Pickup at ${format(new Date(order.scheduled_for), 'PPp')}` : ''}
+                          </p>
                         </div>
                         <div className="text-right flex flex-col items-end gap-1">
                           <Badge variant="secondary">{order.status}</Badge>
+                          {order.payment_status !== 'paid' && (
+                            <Badge variant="outline" className="border-amber-400 text-amber-700 bg-amber-50 text-xs">Awaiting payment</Badge>
+                          )}
                           <p className="text-sm font-semibold">R{Number(order.total_amount).toFixed(2)}</p>
                           {nextStatus && (
                             <Button size="sm" onClick={() => handleNextStatus(order.id, order.status)} disabled={updateStatus.isPending}>
-                              Mark {nextStatus === 'confirmed' ? 'Confirmed' : nextStatus === 'preparing' ? 'Preparing' : nextStatus === 'ready' ? 'Ready for pickup' : 'Picked up'}
+                              Mark {nextStatus === 'confirmed' ? 'Confirmed' : nextStatus === 'preparing' ? 'Preparing' : nextStatus === 'ready' ? 'Ready for pickup' : 'Collected'}
                             </Button>
                           )}
                         </div>
@@ -289,30 +367,93 @@ const VendorDashboard = () => {
           <TabsContent value="menu" className="space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="text-xl font-semibold">Menu Management</h3>
-              <Button>
+              <Button onClick={openAddDialog}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Item
               </Button>
             </div>
+            {menuLoading && <div className="animate-pulse h-32 rounded-lg bg-muted" />}
+            {!menuLoading && (!menuItems || menuItems.length === 0) && (
+              <div className="text-center py-12 text-muted-foreground">No menu items yet. Add your first item to get started.</div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[1, 2, 3, 4].map((item) => (
-                <Card key={item}>
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-semibold">Burger Deluxe</h4>
-                      <Badge variant="outline">Available</Badge>
+              {menuItems?.map((item) => (
+                <Card key={item.id} className={!item.is_available ? 'opacity-60' : ''}>
+                  {item.image_url && (
+                    <div className="h-40 overflow-hidden rounded-t-lg">
+                      <img src={item.image_url} alt={item.name} className="h-full w-full object-cover" />
                     </div>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      Juicy beef patty with fresh vegetables
-                    </p>
-                    <div className="flex justify-between items-center">
-                      <span className="font-semibold">R12.99</span>
-                      <Button variant="outline" size="sm">Edit</Button>
+                  )}
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start mb-1">
+                      <h4 className="font-semibold">{item.name}</h4>
+                      <Badge variant={item.is_available ? 'default' : 'secondary'}>
+                        {item.is_available ? 'Available' : 'Unavailable'}
+                      </Badge>
+                    </div>
+                    {item.category && <p className="text-xs text-muted-foreground mb-1">{item.category}</p>}
+                    {item.description && <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{item.description}</p>}
+                    <div className="flex justify-between items-center mt-2">
+                      <span className="font-semibold">R{Number(item.price).toFixed(2)}</span>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" title={item.is_available ? 'Mark unavailable' : 'Mark available'} onClick={() => handleToggleAvailability(item)}>
+                          {item.is_available ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog({ id: item.id, vendor_id: item.vendor_id, name: item.name, price: item.price, description: item.description || '', category: item.category || '', image_url: item.image_url || '', is_available: item.is_available ?? true })}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteItem(item.id, item.vendor_id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
+
+            {/* Add / Edit menu item dialog */}
+            <Dialog open={menuDialogOpen} onOpenChange={setMenuDialogOpen}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>{editingItem ? 'Edit Menu Item' : 'Add Menu Item'}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-2">
+                  <div className="space-y-1">
+                    <Label>Name <span className="text-destructive">*</span></Label>
+                    <Input placeholder="e.g. Beef Burger" value={menuForm.name} onChange={e => setMenuForm(f => ({ ...f, name: e.target.value }))} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label>Price (R) <span className="text-destructive">*</span></Label>
+                      <Input type="number" min="0" step="0.01" placeholder="25.00" value={menuForm.price} onChange={e => setMenuForm(f => ({ ...f, price: e.target.value }))} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label>Category</Label>
+                      <Input placeholder="e.g. Mains" value={menuForm.category} onChange={e => setMenuForm(f => ({ ...f, category: e.target.value }))} />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Description</Label>
+                    <Textarea placeholder="Brief description..." value={menuForm.description} onChange={e => setMenuForm(f => ({ ...f, description: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Image URL (optional)</Label>
+                    <Input placeholder="https://..." value={menuForm.image_url} onChange={e => setMenuForm(f => ({ ...f, image_url: e.target.value }))} />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" id="is_available" checked={menuForm.is_available} onChange={e => setMenuForm(f => ({ ...f, is_available: e.target.checked }))} className="h-4 w-4" />
+                    <Label htmlFor="is_available" className="font-normal cursor-pointer">Available for ordering</Label>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setMenuDialogOpen(false)}>Cancel</Button>
+                  <Button onClick={handleMenuSave} disabled={createMenuItem.isPending || updateMenuItem.isPending}>
+                    {createMenuItem.isPending || updateMenuItem.isPending ? 'Saving...' : editingItem ? 'Save Changes' : 'Add Item'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-4">
