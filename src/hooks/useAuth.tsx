@@ -53,7 +53,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const fetchProfile = async (userId: string) => {
     try {
-      console.log('Fetching profile for user:', userId);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -61,14 +60,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching profile:', error);
         return;
       }
 
-      console.log('Profile data fetched:', data);
       setProfile(data);
-    } catch (error) {
-      console.error('Unexpected error fetching profile:', error);
+    } catch {
+      // silently fail — user will just not have a profile loaded
     }
   };
 
