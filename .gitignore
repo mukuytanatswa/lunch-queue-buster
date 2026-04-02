@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Sensitive credentials
+Payfast_merchant_ID.txt
+
+# Local scratch files
+branch.txt
+branch\ issue\ android\ studio.png
+Suggestions.txt
