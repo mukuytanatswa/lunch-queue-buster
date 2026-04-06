@@ -55,7 +55,7 @@ const Cart = () => {
         customerEmail: user?.email,
         customerName,
         itemDescription: itemDescription.slice(0, 255),
-        returnUrl: `${window.location.origin}/orders`,
+        returnUrl: `${window.location.origin}/orders?payfast=1`,
         cancelUrl: `${window.location.origin}/cart`,
       },
     });
@@ -120,6 +120,7 @@ const Cart = () => {
         toast.info('Redirecting to PayFast...');
         await redirectToPayFast(order.id);
       } catch (err: unknown) {
+        console.error('[PayFast] Payment error:', err);
         toast.error(err instanceof Error ? err.message : 'Failed to initiate PayFast payment');
       }
       return;
@@ -134,6 +135,7 @@ const Cart = () => {
         description: `QuickBite order`,
       });
       if (!result.success) {
+        console.error('[Payshap] Payment failed:', result.error);
         toast.error(result.error || 'Payshap payment failed');
         return;
       }

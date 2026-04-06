@@ -8,7 +8,7 @@ import { useUpdateOrderStatus } from '@/hooks/useOrders';
 import { usePromotionsByVendor, useCreatePromotion } from '@/hooks/usePromotions';
 import { useAllMenuItems, useCreateMenuItem, useUpdateMenuItem, useDeleteMenuItem } from '@/hooks/useVendors';
 import { supabase } from '@/integrations/supabase/client';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,7 +19,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Store, Users, DollarSign, Clock, Package, Plus, Settings, Tag, Pencil, Trash2, EyeOff, Eye } from 'lucide-react';
 import Navbar from '@/components/Navbar';
-import { format } from 'date-fns';
+import { format, subDays, startOfDay } from 'date-fns';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { toast } from 'sonner';
 
 const statusFlow: Record<string, string | null> = {
@@ -55,6 +56,50 @@ const VendorDashboard = () => {
   const [menuDialogOpen, setMenuDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<null | { id: string; vendor_id: string; name: string; price: number; description: string; category: string; image_url: string; is_available: boolean }>(null);
   const [menuForm, setMenuForm] = useState({ name: '', price: '', description: '', category: '', image_url: '', is_available: true });
+
+  // Settings dialogs
+  const [infoDialogOpen, setInfoDialogOpen] = useState(false);
+  const [hoursDialogOpen, setHoursDialogOpen] = useState(false);
+  const [infoForm, setInfoForm] = useState({ name: '', description: '', location: '', phone_number: '', email: '', cuisine_type: '' });
+  const [hoursForm, setHoursForm] = useState({ delivery_time_min: '', delivery_time_max: '' });
+
+  const updateVendorInfo = useMutation({
+    mutationFn: async (updates: { name: string; description: string; location: string; phone_number: string; email: string; cuisine_type: string }) => {
+      const { error } = await supabase.from('vendors').update({ ...updates, updated_at: new Date().toISOString() }).eq('id', vendor!.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['vendor_by_user'] }); toast.success('Restaurant info updated'); setInfoDialogOpen(false); },
+    onError: () => toast.error('Failed to update info'),
+  });
+
+  const updateVendorHours = useMutation({
+    mutationFn: async (updates: { delivery_time_min: number; delivery_time_max: number }) => {
+      const { error } = await supabase.from('vendors').update({ ...updates, updated_at: new Date().toISOString() }).eq('id', vendor!.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['vendor_by_user'] }); toast.success('Operating hours updated'); setHoursDialogOpen(false); },
+    onError: () => toast.error('Failed to update hours'),
+  });
+
+  const openInfoDialog = () => {
+    setInfoForm({
+      name: vendor?.name ?? '',
+      description: vendor?.description ?? '',
+      location: vendor?.location ?? '',
+      phone_number: vendor?.phone_number ?? '',
+      email: vendor?.email ?? '',
+      cuisine_type: vendor?.cuisine_type ?? '',
+    });
+    setInfoDialogOpen(true);
+  };
+
+  const openHoursDialog = () => {
+    setHoursForm({
+      delivery_time_min: String(vendor?.delivery_time_min ?? ''),
+      delivery_time_max: String(vendor?.delivery_time_max ?? ''),
+    });
+    setHoursDialogOpen(true);
+  };
 
   const openAddDialog = () => {
     setEditingItem(null);
@@ -436,36 +481,68 @@ const VendorDashboard = () => {
 
           <TabsContent value="analytics" className="space-y-4">
             <h3 className="text-xl font-semibold">Analytics Overview</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Weekly Revenue</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">R2 847.00</div>
-                  <p className="text-sm text-muted-foreground">+15% from last week</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Popular Items</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="flex justify-between">
-                    <span>Burger Deluxe</span>
-                    <span className="font-semibold">47 orders</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Pizza Margherita</span>
-                    <span className="font-semibold">32 orders</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Caesar Salad</span>
-                    <span className="font-semibold">28 orders</span>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            {(() => {
+              const completedOrders = (vendorOrders ?? []).filter((o: any) => ['delivered', 'picked_up'].includes(o.status));
+              // Revenue by day (last 7 days)
+              const today = startOfDay(new Date());
+              const revenueByDay = Array.from({ length: 7 }, (_, i) => {
+                const day = subDays(today, 6 - i);
+                const dayStr = format(day, 'EEE');
+                const revenue = completedOrders
+                  .filter((o: any) => startOfDay(new Date(o.created_at)).getTime() === day.getTime())
+                  .reduce((sum: number, o: any) => sum + Number(o.total_amount), 0);
+                return { day: dayStr, revenue: parseFloat(revenue.toFixed(2)) };
+              });
+              const weekTotal = revenueByDay.reduce((s, d) => s + d.revenue, 0);
+              // Popular items
+              const itemCounts: Record<string, number> = {};
+              completedOrders.forEach((o: any) => {
+                (o.order_items ?? []).forEach((item: any) => {
+                  const name = item.menu_items?.name ?? item.name ?? 'Unknown';
+                  itemCounts[name] = (itemCounts[name] ?? 0) + (item.quantity ?? 1);
+                });
+              });
+              const popularItems = Object.entries(itemCounts)
+                .sort(([, a], [, b]) => b - a)
+                .slice(0, 5);
+              return (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Weekly Revenue</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-bold mb-4">R{weekTotal.toFixed(2)}</div>
+                      <ResponsiveContainer width="100%" height={160}>
+                        <BarChart data={revenueByDay} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="day" tick={{ fontSize: 12 }} />
+                          <YAxis tick={{ fontSize: 12 }} />
+                          <Tooltip formatter={(v: number) => `R${v.toFixed(2)}`} />
+                          <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Popular Items</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {popularItems.length === 0
+                        ? <p className="text-sm text-muted-foreground">No completed orders yet.</p>
+                        : popularItems.map(([name, count]) => (
+                          <div key={name} className="flex justify-between text-sm">
+                            <span>{name}</span>
+                            <span className="font-semibold">{count} sold</span>
+                          </div>
+                        ))
+                      }
+                    </CardContent>
+                  </Card>
+                </div>
+              );
+            })()}
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-4">
@@ -500,7 +577,7 @@ const VendorDashboard = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Button variant="outline">
+                  <Button variant="outline" onClick={openInfoDialog}>
                     <Settings className="h-4 w-4 mr-2" />
                     Edit Information
                   </Button>
@@ -510,11 +587,14 @@ const VendorDashboard = () => {
                 <CardHeader>
                   <CardTitle>Operating Hours</CardTitle>
                   <CardDescription>
-                    Set your restaurant&apos;s operating hours and availability
+                    Set your estimated preparation time range (in minutes)
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Button variant="outline">
+                  <div className="text-sm text-muted-foreground mb-3">
+                    Current: {vendor?.delivery_time_min ?? '?'}–{vendor?.delivery_time_max ?? '?'} min prep time
+                  </div>
+                  <Button variant="outline" onClick={openHoursDialog}>
                     <Clock className="h-4 w-4 mr-2" />
                     Edit Hours
                   </Button>
@@ -523,6 +603,77 @@ const VendorDashboard = () => {
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* Edit Restaurant Info Dialog */}
+        <Dialog open={infoDialogOpen} onOpenChange={setInfoDialogOpen}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Edit Restaurant Information</DialogTitle></DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="space-y-1">
+                <Label>Restaurant Name</Label>
+                <Input value={infoForm.name} onChange={e => setInfoForm(f => ({ ...f, name: e.target.value }))} />
+              </div>
+              <div className="space-y-1">
+                <Label>Description</Label>
+                <Textarea value={infoForm.description} onChange={e => setInfoForm(f => ({ ...f, description: e.target.value }))} rows={3} />
+              </div>
+              <div className="space-y-1">
+                <Label>Location</Label>
+                <Input value={infoForm.location} onChange={e => setInfoForm(f => ({ ...f, location: e.target.value }))} placeholder="e.g. Block A Cafeteria" />
+              </div>
+              <div className="space-y-1">
+                <Label>Phone Number</Label>
+                <Input value={infoForm.phone_number} onChange={e => setInfoForm(f => ({ ...f, phone_number: e.target.value }))} />
+              </div>
+              <div className="space-y-1">
+                <Label>Email</Label>
+                <Input type="email" value={infoForm.email} onChange={e => setInfoForm(f => ({ ...f, email: e.target.value }))} />
+              </div>
+              <div className="space-y-1">
+                <Label>Cuisine Type</Label>
+                <Input value={infoForm.cuisine_type} onChange={e => setInfoForm(f => ({ ...f, cuisine_type: e.target.value }))} placeholder="e.g. Fast Food, Burgers" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setInfoDialogOpen(false)}>Cancel</Button>
+              <Button
+                onClick={() => updateVendorInfo.mutate(infoForm)}
+                disabled={updateVendorInfo.isPending || !infoForm.name.trim() || !infoForm.location.trim()}
+              >
+                {updateVendorInfo.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Operating Hours Dialog */}
+        <Dialog open={hoursDialogOpen} onOpenChange={setHoursDialogOpen}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Edit Preparation Time</DialogTitle></DialogHeader>
+            <div className="space-y-4 py-2">
+              <p className="text-sm text-muted-foreground">Set how long orders typically take to prepare (shown to students at checkout).</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label>Min (minutes)</Label>
+                  <Input type="number" min={1} value={hoursForm.delivery_time_min} onChange={e => setHoursForm(f => ({ ...f, delivery_time_min: e.target.value }))} placeholder="e.g. 15" />
+                </div>
+                <div className="space-y-1">
+                  <Label>Max (minutes)</Label>
+                  <Input type="number" min={1} value={hoursForm.delivery_time_max} onChange={e => setHoursForm(f => ({ ...f, delivery_time_max: e.target.value }))} placeholder="e.g. 30" />
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setHoursDialogOpen(false)}>Cancel</Button>
+              <Button
+                onClick={() => updateVendorHours.mutate({ delivery_time_min: Number(hoursForm.delivery_time_min), delivery_time_max: Number(hoursForm.delivery_time_max) })}
+                disabled={updateVendorHours.isPending || !hoursForm.delivery_time_min || !hoursForm.delivery_time_max}
+              >
+                {updateVendorHours.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

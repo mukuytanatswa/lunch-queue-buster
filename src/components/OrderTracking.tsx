@@ -1,4 +1,4 @@
-import { CheckCircle, Clock, Package, Truck, MapPin, ChefHat } from 'lucide-react';
+import { CheckCircle, Clock, Package, ShoppingBag, MapPin, ChefHat } from 'lucide-react';
 
 interface OrderTrackingProps {
   status: string;
@@ -12,7 +12,7 @@ const steps = [
   { key: 'confirmed', label: 'Confirmed', icon: CheckCircle },
   { key: 'preparing', label: 'Preparing', icon: ChefHat },
   { key: 'ready', label: 'Ready', icon: Package },
-  { key: 'picked_up', label: 'Picked Up', icon: Truck },
+  { key: 'picked_up', label: 'Collected', icon: ShoppingBag },
   { key: 'delivered', label: 'Delivered', icon: MapPin },
 ];
 
@@ -71,7 +71,7 @@ const OrderTracking = ({ status, estimatedTime, deliveredTime, pickupTime }: Ord
             {status === 'confirmed' && 'Your order has been confirmed!'}
             {status === 'preparing' && 'Your food is being prepared 🍳'}
             {status === 'ready' && 'Your order is ready for pickup!'}
-            {status === 'picked_up' && 'Your driver is on the way! 🚗'}
+            {status === 'picked_up' && 'Please collect your order at the counter!'}
           </p>
         </div>
       )}

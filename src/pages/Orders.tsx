@@ -1,10 +1,10 @@
-import { useEffect } from 'react';
-import { Navigate, Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Navigate, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ClockIcon, Package2Icon, CheckCircleIcon, TruckIcon, XCircleIcon, ChefHat, Eye, RotateCcw, MapPin } from "lucide-react";
+import { ClockIcon, Package2Icon, CheckCircleIcon, TruckIcon, XCircleIcon, ChefHat, Eye, RotateCcw, MapPin, CreditCard, X } from "lucide-react";
 import { useOrders, useCancelOrder } from '@/hooks/useOrders';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
@@ -27,6 +27,8 @@ const statusConfig: Record<string, { label: string; icon: any; color: string }> 
 const Orders = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
+  const [payfastBanner, setPayfastBanner] = useState(searchParams.get('payfast') === '1');
   const { user, loading: authLoading } = useAuth();
   const { data: orders, isLoading } = useOrders();
   const cancelOrder = useCancelOrder();
@@ -94,6 +96,16 @@ const Orders = () => {
             <p className="text-muted-foreground">Track and manage your current and past orders</p>
           </div>
 
+          {payfastBanner && (
+            <div className="flex items-center gap-3 mb-6 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-blue-800">
+              <CreditCard className="h-5 w-5 flex-shrink-0" />
+              <p className="flex-1 text-sm font-medium">Your PayFast payment is being confirmed — this page updates automatically once received.</p>
+              <button onClick={() => setPayfastBanner(false)} className="text-blue-600 hover:text-blue-800">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
           {isLoading && (
             <div className="space-y-4">
               {[1, 2, 3].map(i => <div key={i} className="h-32 rounded-lg bg-muted animate-pulse" />)}
@@ -125,10 +137,15 @@ const Orders = () => {
                           <h3 className="text-lg font-medium">{(order as any).vendors?.name || 'Restaurant'}</h3>
                           <p className="text-sm text-muted-foreground">Order #{order.order_number}</p>
                         </div>
-                        <div className="flex items-center gap-3 mt-2 md:mt-0">
+                        <div className="flex items-center gap-3 mt-2 md:mt-0 flex-wrap">
                           <Badge className={`${status.color}`}>
                             <StatusIcon className="h-4 w-4 mr-1" />{status.label}
                           </Badge>
+                          {(order as any).payment_method === 'payfast' && (order as any).payment_status !== 'paid' && (
+                            <Badge variant="outline" className="border-amber-400 text-amber-700">
+                              <CreditCard className="h-3 w-3 mr-1" />Awaiting payment
+                            </Badge>
+                          )}
                           <Button variant="outline" size="sm" asChild>
                             <Link to={`/order/${order.id}`}><Eye className="h-4 w-4 mr-1" />Track</Link>
                           </Button>

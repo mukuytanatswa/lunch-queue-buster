@@ -5,7 +5,6 @@ import { supabase } from '@/integrations/supabase/client';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import OrderTracking from '@/components/OrderTracking';
-import OrderChat from '@/components/OrderChat';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -61,13 +60,6 @@ const OrderDetail = () => {
       </div>
     );
   }
-
-  const driverId = order.driver_id;
-  const isCustomer = order.customer_id === user?.id;
-  const isDriver = order.driver_id === user?.id;
-  const chatPartnerId = isCustomer ? driverId : order.customer_id;
-  const chatPartnerName = isCustomer ? 'Driver' : order.customer_name;
-  const showChat = (isCustomer || isDriver) && driverId && !['delivered', 'cancelled'].includes(order.status);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -162,13 +154,6 @@ const OrderDetail = () => {
                 </CardContent>
               </Card>
 
-              {showChat && chatPartnerId && (
-                <OrderChat
-                  orderId={order.id}
-                  otherUserId={chatPartnerId}
-                  otherUserName={chatPartnerName}
-                />
-              )}
             </div>
           </div>
         </div>

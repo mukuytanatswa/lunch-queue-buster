@@ -33,6 +33,12 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
+    if (!merchantId || !merchantKey) {
+      return new Response(JSON.stringify({ error: 'PayFast credentials not configured. Run: supabase secrets set PAYFAST_MERCHANT_ID=... PAYFAST_MERCHANT_KEY=...' }), {
+        status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const {
       orderId,
       amount,

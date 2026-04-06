@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { 
   Users, 
   Store, 
-  Truck, 
   DollarSign, 
   TrendingUp,
   AlertTriangle,
@@ -36,7 +35,7 @@ const PlatformOverview = () => {
       </Card>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Users</CardTitle>
@@ -46,18 +45,6 @@ const PlatformOverview = () => {
             <div className="text-2xl font-bold">1,247</div>
             <p className="text-xs text-muted-foreground">Customers online</p>
             <div className="text-sm text-green-600 font-medium mt-1">+12% vs yesterday</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Drivers</CardTitle>
-            <Truck className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">89</div>
-            <p className="text-xs text-muted-foreground">Online drivers</p>
-            <div className="text-sm text-blue-600 font-medium mt-1">23 available</div>
           </CardContent>
         </Card>
 
@@ -123,7 +110,7 @@ const PlatformOverview = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg. Delivery Time</CardTitle>
+            <CardTitle className="text-sm font-medium">Avg. Pickup Time</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -151,14 +138,6 @@ const PlatformOverview = () => {
               <Button variant="destructive" size="sm">Resolve</Button>
             </div>
             
-            <div className="flex items-center justify-between p-3 border border-yellow-200 dark:border-yellow-800 rounded-lg bg-yellow-50 dark:bg-yellow-900/20">
-              <div>
-                <p className="font-medium text-yellow-800 dark:text-yellow-200">Delivery Delays</p>
-                <p className="text-sm text-yellow-600 dark:text-yellow-300">5 orders running behind schedule due to driver shortage</p>
-              </div>
-              <Button variant="outline" size="sm">Manage</Button>
-            </div>
-
             <div className="flex items-center justify-between p-3 border border-blue-200 dark:border-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/20">
               <div>
                 <p className="font-medium text-blue-800 dark:text-blue-200">Customer Complaints</p>

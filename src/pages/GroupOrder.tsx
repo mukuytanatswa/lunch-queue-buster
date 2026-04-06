@@ -28,7 +28,7 @@ const GroupOrder = () => {
   const [paymentMethod, setPaymentMethod] = useState<'payfast' | 'payshap'>('payfast');
   const [isPlacing, setIsPlacing] = useState(false);
 
-  const { data: groupOrder, isLoading } = useQuery({
+  const { data: groupOrder, isLoading, isError } = useQuery({
     queryKey: ['group_order', id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -240,6 +240,21 @@ const GroupOrder = () => {
         <Navbar />
         <main className="flex-grow pt-24 flex items-center justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        </main>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-grow pt-24 flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold mb-4">Unable to Load Group Order</h2>
+            <p className="text-muted-foreground mb-4">There was a problem loading this group order. It may have expired or you may not have access.</p>
+            <Button asChild><Link to="/">Go Home</Link></Button>
+          </div>
         </main>
       </div>
     );

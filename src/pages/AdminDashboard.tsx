@@ -6,7 +6,6 @@ import Navbar from '@/components/Navbar';
 import PlatformOverview from '@/components/admin/PlatformOverview';
 import OrdersManagement from '@/components/admin/OrdersManagement';
 import VendorManagement from '@/components/admin/VendorManagement';
-import DriverManagement from '@/components/admin/DriverManagement';
 
 const AdminDashboard = () => {
   const { user, profile, loading } = useAuth();
@@ -39,11 +38,10 @@ const AdminDashboard = () => {
         </div>
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-6 mb-8">
+          <TabsList className="grid w-full grid-cols-5 mb-8">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="orders">Orders</TabsTrigger>
             <TabsTrigger value="vendors">Vendors</TabsTrigger>
-            <TabsTrigger value="drivers">Drivers</TabsTrigger>
             <TabsTrigger value="customers">Customers</TabsTrigger>
             <TabsTrigger value="financial">Financial</TabsTrigger>
           </TabsList>
@@ -51,7 +49,6 @@ const AdminDashboard = () => {
           <TabsContent value="overview"><PlatformOverview /></TabsContent>
           <TabsContent value="orders"><OrdersManagement /></TabsContent>
           <TabsContent value="vendors"><VendorManagement /></TabsContent>
-          <TabsContent value="drivers"><DriverManagement /></TabsContent>
           <TabsContent value="customers">
             <div className="text-center py-12">
               <h3 className="text-xl font-semibold mb-2">Customer Management</h3>

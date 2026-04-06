@@ -74,6 +74,7 @@ const VendorDetail = () => {
       navigate(`/group-order/${data.id}`);
       toast.success('Group order created! Share the link with friends.');
     } catch (err) {
+      console.error('Group order creation error:', err);
       toast.error('Failed to create group order');
     } finally {
       setCreatingGroup(false);

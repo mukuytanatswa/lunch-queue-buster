@@ -33,7 +33,9 @@ serve(async (req) => {
     const body = await req.text();
     const params = Object.fromEntries(new URLSearchParams(body));
 
-    const { payment_status, m_payment_id, merchant_id, signature, ...rest } = params;
+    // Preserve original param order — PayFast signature is order-sensitive
+    const { signature, ...dataWithoutSignature } = params;
+    const { merchant_id, m_payment_id, payment_status } = params;
 
     // 1. Verify merchant ID matches
     if (merchant_id !== merchantId) {
@@ -42,7 +44,6 @@ serve(async (req) => {
     }
 
     // 2. Verify MD5 signature
-    const dataWithoutSignature: Record<string, string> = { merchant_id, m_payment_id, payment_status, ...rest };
     const paramString = buildParamString(dataWithoutSignature, passphrase || undefined);
     const expectedSignature = await md5(paramString);
 

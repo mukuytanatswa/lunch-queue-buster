@@ -24,13 +24,13 @@ serve(async (req) => {
       });
     }
 
-    // No API credentials configured — return simulated success for dev/testing
+    // No API credentials configured — fail clearly instead of silently faking success
     if (!apiUrl || !apiKey) {
       return new Response(JSON.stringify({
-        success: true,
-        reference: `PAYSHAP-${Date.now()}-${reference}`,
-        status: 'initiated',
+        success: false,
+        error: 'Payshap credentials not configured. Run: supabase secrets set PAYSHAP_API_URL=... PAYSHAP_API_KEY=...',
       }), {
+        status: 503,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
