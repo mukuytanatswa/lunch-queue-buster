@@ -1,15 +1,14 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { crypto } from 'https://deno.land/std@0.212.0/crypto/mod.ts';
+import { createHash } from 'node:crypto';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-async function md5(text: string): Promise<string> {
-  const hash = await crypto.subtle.digest('MD5', new TextEncoder().encode(text));
-  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+function md5(text: string): string {
+  return createHash('md5').update(text).digest('hex');
 }
 
 function buildParamString(params: Record<string, string>, passphrase?: string): string {
@@ -98,7 +97,7 @@ serve(async (req) => {
     };
 
     const paramString = buildParamString(params, passphrase || undefined);
-    const signature = await md5(paramString);
+    const signature = md5(paramString);
 
     return new Response(JSON.stringify({ payfast_url: payfastUrl, params: { ...params, signature } }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

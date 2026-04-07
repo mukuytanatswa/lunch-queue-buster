@@ -55,13 +55,17 @@ const Cart = () => {
         customerEmail: user?.email,
         customerName,
         itemDescription: itemDescription.slice(0, 255),
-        returnUrl: `${window.location.origin}/orders?payfast=1`,
-        cancelUrl: `${window.location.origin}/cart`,
+        returnUrl: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/payfast-return`,
+        cancelUrl: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/payfast-return?cancelled=1`,
       },
     });
 
     if (error || !data?.payfast_url) {
-      throw new Error(error?.message || data?.error || 'PayFast setup failed');
+      let detail: string = data?.error ?? 'PayFast setup failed';
+      if (error?.context) {
+        try { detail = (await (error.context as Response).json()).error ?? detail; } catch { /* ignore */ }
+      }
+      throw new Error(detail);
     }
 
     // Build a hidden form and POST to PayFast — standard PayFast redirect flow

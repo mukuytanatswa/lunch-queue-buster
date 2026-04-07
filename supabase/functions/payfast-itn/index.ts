@@ -1,10 +1,9 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { crypto } from 'https://deno.land/std@0.212.0/crypto/mod.ts';
+import { createHash } from 'node:crypto';
 
-async function md5(text: string): Promise<string> {
-  const hash = await crypto.subtle.digest('MD5', new TextEncoder().encode(text));
-  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+function md5(text: string): string {
+  return createHash('md5').update(text).digest('hex');
 }
 
 function buildParamString(params: Record<string, string>, passphrase?: string): string {
@@ -45,7 +44,7 @@ serve(async (req) => {
 
     // 2. Verify MD5 signature
     const paramString = buildParamString(dataWithoutSignature, passphrase || undefined);
-    const expectedSignature = await md5(paramString);
+    const expectedSignature = md5(paramString);
 
     if (signature !== expectedSignature) {
       console.error('ITN: signature mismatch', { received: signature, expected: expectedSignature });

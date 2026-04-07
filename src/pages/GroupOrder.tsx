@@ -201,12 +201,16 @@ const GroupOrder = () => {
             customerEmail: user.email,
             customerName,
             itemDescription: itemDescription.slice(0, 255),
-            returnUrl: `${window.location.origin}/orders`,
-            cancelUrl: `${window.location.origin}/group-order/${groupOrder.id}`,
+            returnUrl: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/payfast-return`,
+            cancelUrl: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/payfast-return?cancelled=1`,
           },
         });
         if (pfError || !pfData?.payfast_url) {
-          toast.error(pfError?.message || pfData?.error || 'PayFast setup failed');
+          let detail: string = pfData?.error ?? 'PayFast setup failed';
+          if (pfError?.context) {
+            try { detail = (await (pfError.context as Response).json()).error ?? detail; } catch { /* ignore */ }
+          }
+          toast.error(detail);
           navigate('/orders');
           return;
         }
