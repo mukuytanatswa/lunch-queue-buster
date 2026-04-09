@@ -19,7 +19,7 @@ const HeroSection = () => {
               Skip the Lunch Queue at UCT
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto slide-up stagger-1">
-              Order from your favorite campus vendors and get food delivered right to you. Save time and never miss a class again.
+              Pre-order from your favourite campus vendors and collect your food without waiting in line. Save time and never miss a class again.
             </p>
           </div>
 
@@ -35,11 +35,10 @@ const HeroSection = () => {
             </Button>
           </div>
 
-          <div className="pt-8 grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-12 slide-up stagger-3">
+          <div className="pt-8 grid grid-cols-2 md:grid-cols-3 gap-6 md:gap-12 slide-up stagger-3">
             {[
               { label: 'Campus Vendors', value: '10+' },
-              { label: 'Delivery Time', value: '15-25 min' },
-              { label: 'Happy Students', value: '500+' },
+              { label: 'Prep Time', value: '15-25 min' },
               { label: 'Time Saved', value: '30+ min' }
             ].map((stat, index) => (
               <div key={index} className="flex flex-col">
