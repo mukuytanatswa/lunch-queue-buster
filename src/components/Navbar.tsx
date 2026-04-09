@@ -55,9 +55,6 @@ const Navbar = () => {
     )}>
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <Link to="/" className="flex items-center space-x-2">
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-            <span className="text-xs font-black text-white leading-none">QB</span>
-          </div>
           <span className="text-2xl font-bold text-primary">QuickBite</span>
         </Link>
 
