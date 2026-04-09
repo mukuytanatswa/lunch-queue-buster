@@ -61,14 +61,27 @@ const Cart = () => {
     });
 
     if (error || !data?.payfast_url) {
-      let detail: string = data?.error ?? 'PayFast setup failed';
-      if (error?.context) {
-        try { detail = (await (error.context as Response).json()).error ?? detail; } catch { /* ignore */ }
+      let detail = data?.error ?? 'PayFast setup failed';
+      if (error) {
+        try {
+          const ctx = (error as any).context;
+          if (ctx instanceof Response) {
+            const body = await ctx.json();
+            detail = body?.error || body?.message || (error as any).message || detail;
+          } else {
+            detail = (error as any).message || detail;
+          }
+        } catch {
+          detail = (error as any).message || detail;
+        }
       }
       throw new Error(detail);
     }
 
-    // Build a hidden form and POST to PayFast — standard PayFast redirect flow
+    // Clear cart and close dialog only now — just before navigating away to PayFast
+    clearCart();
+    setIsCheckoutDialogOpen(false);
+
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = data.payfast_url;
@@ -119,8 +132,6 @@ const Cart = () => {
     if (paymentMethod === 'payfast') {
       try {
         const order = await placeOrder.mutateAsync({ ...orderPayload, paymentMethod: 'payfast' });
-        clearCart();
-        setIsCheckoutDialogOpen(false);
         toast.info('Redirecting to PayFast...');
         await redirectToPayFast(order.id);
       } catch (err: unknown) {
