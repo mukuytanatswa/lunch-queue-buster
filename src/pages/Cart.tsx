@@ -55,8 +55,8 @@ const Cart = () => {
         customerEmail: user?.email,
         customerName,
         itemDescription: itemDescription.slice(0, 255),
-        returnUrl: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/payfast-return`,
-        cancelUrl: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/payfast-return?cancelled=1`,
+        returnUrl: `${window.location.origin}/orders?payfast=1`,
+        cancelUrl: `${window.location.origin}/cart`,
       },
     });
 
@@ -125,7 +125,8 @@ const Cart = () => {
         await redirectToPayFast(order.id);
       } catch (err: unknown) {
         console.error('[PayFast] Payment error:', err);
-        toast.error(err instanceof Error ? err.message : 'Failed to initiate PayFast payment');
+        const msg = err instanceof Error ? err.message : (err as any)?.message ?? 'Failed to initiate PayFast payment';
+        toast.error(msg);
       }
       return;
     }

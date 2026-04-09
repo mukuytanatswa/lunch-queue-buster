@@ -201,8 +201,8 @@ const GroupOrder = () => {
             customerEmail: user.email,
             customerName,
             itemDescription: itemDescription.slice(0, 255),
-            returnUrl: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/payfast-return`,
-            cancelUrl: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/payfast-return?cancelled=1`,
+            returnUrl: `${window.location.origin}/orders?payfast=1`,
+            cancelUrl: `${window.location.origin}/cart`,
           },
         });
         if (pfError || !pfData?.payfast_url) {

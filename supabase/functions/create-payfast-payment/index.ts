@@ -28,7 +28,7 @@ serve(async (req) => {
     const merchantId = Deno.env.get('PAYFAST_MERCHANT_ID') ?? '';
     const merchantKey = Deno.env.get('PAYFAST_MERCHANT_KEY') ?? '';
     const passphrase = Deno.env.get('PAYFAST_PASSPHRASE') ?? '';
-    const isSandbox = Deno.env.get('PAYFAST_SANDBOX') !== 'false'; // default to sandbox
+    const isSandbox = Deno.env.get('PAYFAST_SANDBOX') === 'true'; // default to production
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
