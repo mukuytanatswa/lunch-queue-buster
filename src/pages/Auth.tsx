@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Icons } from '@/components/ui/icons';
 import { Separator } from '@/components/ui/separator';
 
@@ -30,7 +30,7 @@ const Auth = () => {
     const formData = new FormData(e.currentTarget);
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
-    const role = formData.get('role') as UserRole;
+    const role = (formData.get('role') as UserRole) || 'student';
     const firstName = formData.get('firstName') as string;
     const lastName = formData.get('lastName') as string;
 
@@ -271,8 +271,8 @@ const Auth = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="student">Student</SelectItem>
-                      <SelectItem value="vendor">Restaurant/Vendor</SelectItem>
-                      <SelectItem value="admin">Administrator</SelectItem>
+                      <SelectItem value="staff">Staff</SelectItem>
+                      <SelectItem value="visitor">Visitor</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

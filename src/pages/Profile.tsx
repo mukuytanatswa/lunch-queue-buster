@@ -17,7 +17,6 @@ const Profile = () => {
     first_name: profile?.first_name || '',
     last_name: profile?.last_name || '',
     phone: profile?.phone || '',
-    campus_location: profile?.campus_location || '',
   });
 
   if (!loading && !user) return <Navigate to="/auth" replace />;
@@ -36,7 +35,6 @@ const Profile = () => {
       first_name: profile.first_name || '',
       last_name: profile.last_name || '',
       phone: profile.phone || '',
-      campus_location: profile.campus_location || '',
     });
   }
 
@@ -68,10 +66,6 @@ const Profile = () => {
                         <Label>Phone</Label>
                         <Input value={formData.phone} onChange={e => setFormData(p => ({ ...p, phone: e.target.value }))} />
                       </div>
-                      <div>
-                        <Label>Campus Location</Label>
-                        <Input value={formData.campus_location} onChange={e => setFormData(p => ({ ...p, campus_location: e.target.value }))} />
-                      </div>
                       <div className="flex gap-2">
                         <Button onClick={handleSave}><Save className="h-4 w-4 mr-2" />Save</Button>
                         <Button variant="outline" onClick={() => setEditing(false)}><X className="h-4 w-4 mr-2" />Cancel</Button>
@@ -101,9 +95,9 @@ const Profile = () => {
                 </div>
               </div>
               <div className="bg-card rounded-xl shadow-sm p-6">
-                <h2 className="text-lg font-semibold mb-4">Delivery Preferences</h2>
+                <h2 className="text-lg font-semibold mb-4">Account Status</h2>
                 <div className="space-y-4">
-                  <div><p className="text-sm text-muted-foreground">Campus Location</p><p>{profile?.campus_location || 'Not set'}</p></div>
+                  <div><p className="text-sm text-muted-foreground">Campus</p><p>Upper Campus</p></div>
                   <div><p className="text-sm text-muted-foreground">Onboarding</p><p>{profile?.onboarding_completed ? 'Completed' : 'Not completed'}</p></div>
                 </div>
               </div>

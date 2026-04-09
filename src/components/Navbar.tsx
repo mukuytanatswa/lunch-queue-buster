@@ -36,6 +36,8 @@ const Navbar = () => {
 
     switch (profile?.role) {
       case 'student':
+      case 'staff':
+      case 'visitor':
         return [...baseLinks, { name: 'Orders', path: '/orders' }];
       case 'vendor':
         return [{ name: 'Home', path: '/' }, { name: 'Dashboard', path: '/vendor-dashboard' }, { name: 'About', path: '/about' }];
