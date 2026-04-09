@@ -10,7 +10,7 @@ const Footer = () => {
           <div className="space-y-4">
             <h3 className="text-2xl font-bold text-brand-600">QuickBite</h3>
             <p className="text-sm text-muted-foreground">
-              Skip the queue, not the meal. Get food delivered across UCT campus.
+              Skip the queue, not the meal. Pre-order your food across UCT campus.
             </p>
             <div className="flex space-x-4">
               <a href="#" className="text-muted-foreground hover:text-brand-600 transition-colors">
@@ -39,19 +39,14 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/orders" className="text-muted-foreground hover:text-brand-600 transition-colors">
-                  Track Orders
-                </Link>
-              </li>
-              <li>
                 <Link to="/about" className="text-muted-foreground hover:text-brand-600 transition-colors">
                   About Us
                 </Link>
               </li>
               <li>
-                <Link to="/contact" className="text-muted-foreground hover:text-brand-600 transition-colors">
+                <a href="mailto:info@getquickbite.co.za" className="text-muted-foreground hover:text-brand-600 transition-colors">
                   Contact
-                </Link>
+                </a>
               </li>
             </ul>
           </div>
@@ -74,25 +69,16 @@ const Footer = () => {
                   Privacy Policy
                 </Link>
               </li>
-              <li>
-                <Link to="/delivery-policy" className="text-muted-foreground hover:text-brand-600 transition-colors">
-                  Delivery Policy
-                </Link>
-              </li>
             </ul>
           </div>
 
           <div>
             <h4 className="font-semibold mb-4">Contact</h4>
             <ul className="space-y-2 text-sm">
-              <li className="text-muted-foreground">
-                University of Cape Town, Rondebosch, Cape Town
-              </li>
-              <li className="text-muted-foreground">
-                quickbite@uct.ac.za
-              </li>
-              <li className="text-muted-foreground">
-                +27 21 650 9111
+              <li>
+                <a href="mailto:info@getquickbite.co.za" className="text-muted-foreground hover:text-brand-600 transition-colors">
+                  info@getquickbite.co.za
+                </a>
               </li>
             </ul>
           </div>
