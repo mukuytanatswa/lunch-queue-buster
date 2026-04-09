@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Clock, MapPin, Search, Star, TrendingUp, Zap, Wallet, Users } from 'lucide-react';
-import { useVendors } from '@/hooks/useVendors';
+import { useVendors, useMenuItemSearch } from '@/hooks/useVendors';
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -18,6 +18,7 @@ const Index = () => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const { data: vendors, isLoading } = useVendors();
+  const { data: matchingVendorIds } = useMenuItemSearch(searchQuery);
 
   useEffect(() => {
     if (user && profile && !profile.onboarding_completed) {
@@ -26,8 +27,7 @@ const Index = () => {
   }, [user, profile, navigate]);
 
   const filteredVendors = vendors?.filter(vendor => {
-    const matchesSearch = vendor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      vendor.cuisine_type.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = searchQuery === '' || (matchingVendorIds ?? []).includes(vendor.id);
     const matchesCampus = selectedCampus === 'all' || vendor.location === selectedCampus;
     return matchesSearch && matchesCampus;
   }) || [];

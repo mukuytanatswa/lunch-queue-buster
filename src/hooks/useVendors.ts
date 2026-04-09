@@ -34,6 +34,23 @@ export const useVendor = (id: string) => {
   });
 };
 
+export const useMenuItemSearch = (query: string) => {
+  return useQuery({
+    queryKey: ['menu_item_search', query],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('menu_items')
+        .select('vendor_id')
+        .ilike('name', `%${query}%`)
+        .eq('is_available', true);
+
+      if (error) throw error;
+      return Array.from(new Set(data.map(item => item.vendor_id)));
+    },
+    enabled: query.length > 0,
+  });
+};
+
 export const useMenuItems = (vendorId: string) => {
   return useQuery({
     queryKey: ['menu_items', vendorId],
