@@ -121,35 +121,6 @@ const Index = () => {
           </div>
         </section>
 
-        {/* Why QuickBite */}
-        <section className="py-12 bg-card">
-          <div className="container mx-auto px-4">
-            <h2 className="text-2xl font-bold text-primary mb-8">Why QuickBite?</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="bg-primary/5 p-6 rounded-xl border border-primary/10">
-                <div className="h-12 w-12 bg-primary rounded-full flex items-center justify-center mb-4">
-                  <Clock className="h-6 w-6 text-primary-foreground" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">Save Time Between Classes</h3>
-                <p className="text-muted-foreground">Skip the queue and get food delivered exactly when you need it.</p>
-              </div>
-              <div className="bg-destructive/5 p-6 rounded-xl border border-destructive/10">
-                <div className="h-12 w-12 bg-destructive rounded-full flex items-center justify-center mb-4">
-                  <MapPin className="h-6 w-6 text-destructive-foreground" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">Campus-Specific Delivery</h3>
-                <p className="text-muted-foreground">Delivery right to your lecture hall, library, or residence.</p>
-              </div>
-              <div className="bg-primary/5 p-6 rounded-xl border border-primary/10">
-                <div className="h-12 w-12 bg-primary rounded-full flex items-center justify-center mb-4">
-                  <Users className="h-6 w-6 text-primary-foreground" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">Group Orders</h3>
-                <p className="text-muted-foreground">Split orders with friends and save on delivery fees.</p>
-              </div>
-            </div>
-          </div>
-        </section>
       </main>
       <Footer />
     </div>

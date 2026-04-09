@@ -24,6 +24,9 @@ import InviteAccept from "./pages/InviteAccept";
 import GroupOrder from "./pages/GroupOrder";
 import JoinGroupOrder from "./pages/JoinGroupOrder";
 import OrderTracking from "./pages/OrderTracking";
+import FAQ from "./pages/FAQ";
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
 
 const queryClient = new QueryClient();
 
@@ -60,6 +63,9 @@ const App = () => (
               <Route path="/group-order/:id" element={<GroupOrder />} />
               <Route path="/join/:code" element={<JoinGroupOrder />} />
               <Route path="/orders/:orderId/track" element={<OrderTracking />} />
+              <Route path="/faq" element={<FAQ />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/privacy" element={<Privacy />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
