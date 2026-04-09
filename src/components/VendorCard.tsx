@@ -1,5 +1,5 @@
 
-import { Clock, MapPin, Star } from 'lucide-react';
+import { Clock, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -53,12 +53,8 @@ const VendorCard = ({
       </div>
       
       <div className="flex flex-col p-4 flex-grow">
-        <div className="mb-2 flex items-center justify-between">
+        <div className="mb-2">
           <h3 className="font-semibold text-lg">{name}</h3>
-          <div className="flex items-center">
-            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-            <span className="text-sm font-medium">{rating}</span>
-          </div>
         </div>
         
         <Badge variant="outline" className="self-start text-xs mb-3">

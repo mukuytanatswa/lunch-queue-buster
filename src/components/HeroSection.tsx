@@ -35,9 +35,8 @@ const HeroSection = () => {
             </Button>
           </div>
 
-          <div className="pt-8 grid grid-cols-2 md:grid-cols-3 gap-6 md:gap-12 slide-up stagger-3">
+          <div className="pt-8 grid grid-cols-2 gap-6 md:gap-12 slide-up stagger-3">
             {[
-              { label: 'Campus Vendors', value: '10+' },
               { label: 'Prep Time', value: '15-25 min' },
               { label: 'Time Saved', value: '30+ min' }
             ].map((stat, index) => (

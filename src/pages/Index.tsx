@@ -62,16 +62,14 @@ const Index = () => {
                   <select id="campus" value={selectedCampus} onChange={e => setSelectedCampus(e.target.value)}
                     className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm">
                     <option value="all">All Campuses</option>
-                    {allLocations.map(loc => (
-                      <option key={loc} value={loc}>{loc}</option>
-                    ))}
+                    <option value="Upper Campus">Upper Campus</option>
                   </select>
                 </div>
                 <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="search" className="text-sm font-medium">Search for food or cuisine</Label>
+                  <Label htmlFor="search" className="text-sm font-medium">Search for food</Label>
                   <div className="relative">
                     <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input id="search" placeholder="Search for vendors, dishes, or cuisines..." className="pl-9" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                    <Input id="search" placeholder="Search for food" className="pl-9" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
                   </div>
                 </div>
               </div>
