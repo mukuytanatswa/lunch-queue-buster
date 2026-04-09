@@ -3,25 +3,50 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  Store, 
-  Search, 
-  Filter, 
-  Star, 
-  DollarSign, 
-  Clock, 
+import {
+  Store,
+  Search,
+  Filter,
+  Star,
+  DollarSign,
+  Clock,
   Users,
   Eye,
   Ban,
   CheckCircle,
   AlertTriangle,
-  TrendingUp
+  TrendingUp,
+  UserPlus
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const VendorManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [inviteForm, setInviteForm] = useState({ firstName: '', lastName: '', email: '' });
+  const [inviting, setInviting] = useState(false);
+
+  const handleInviteVendor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setInviting(true);
+    const { data, error } = await supabase.functions.invoke('invite-vendor', {
+      body: {
+        email: inviteForm.email,
+        firstName: inviteForm.firstName,
+        lastName: inviteForm.lastName,
+      },
+    });
+    setInviting(false);
+    if (error || data?.error) {
+      toast.error(data?.error ?? 'Failed to invite vendor');
+    } else {
+      toast.success(`Invite sent to ${inviteForm.email}`);
+      setInviteForm({ firstName: '', lastName: '', email: '' });
+    }
+  };
 
   const vendors = [
     {
@@ -101,6 +126,32 @@ const VendorManagement = () => {
 
   return (
     <div className="space-y-6">
+      {/* Invite Vendor */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><UserPlus className="h-5 w-5" />Invite Vendor</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleInviteVendor} className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1 space-y-1">
+              <Label>First Name</Label>
+              <Input placeholder="Jane" value={inviteForm.firstName} onChange={e => setInviteForm(p => ({ ...p, firstName: e.target.value }))} required />
+            </div>
+            <div className="flex-1 space-y-1">
+              <Label>Last Name</Label>
+              <Input placeholder="Doe" value={inviteForm.lastName} onChange={e => setInviteForm(p => ({ ...p, lastName: e.target.value }))} required />
+            </div>
+            <div className="flex-1 space-y-1">
+              <Label>Email</Label>
+              <Input type="email" placeholder="vendor@email.com" value={inviteForm.email} onChange={e => setInviteForm(p => ({ ...p, email: e.target.value }))} required />
+            </div>
+            <div className="flex items-end">
+              <Button type="submit" disabled={inviting}>{inviting ? 'Sending...' : 'Send Invite'}</Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
       {/* Vendor Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
