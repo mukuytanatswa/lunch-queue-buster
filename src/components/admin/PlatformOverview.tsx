@@ -1,19 +1,53 @@
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { 
-  Users, 
-  Store, 
-  DollarSign, 
-  TrendingUp,
-  AlertTriangle,
+import {
+  Users,
+  Store,
+  DollarSign,
   Clock,
   CheckCircle,
   XCircle,
   Activity
 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+
+const useAdminStats = () => {
+  return useQuery({
+    queryKey: ['admin-stats'],
+    queryFn: async () => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayIso = today.toISOString();
+
+      const [usersRes, vendorsRes, ordersRes, activeOrdersRes, cancelledRes] = await Promise.all([
+        supabase.from('profiles').select('id', { count: 'exact', head: true }),
+        supabase.from('vendors').select('id, is_open', { count: 'exact' }).eq('is_active', true),
+        supabase.from('orders').select('total_amount').eq('status', 'completed').gte('created_at', todayIso),
+        supabase.from('orders').select('id', { count: 'exact', head: true }).in('status', ['pending', 'confirmed', 'preparing', 'ready']),
+        supabase.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'cancelled').gte('created_at', todayIso),
+      ]);
+
+      const totalUsers = usersRes.count ?? 0;
+      const vendors = vendorsRes.data ?? [];
+      const totalVendors = vendorsRes.count ?? 0;
+      const openVendors = vendors.filter(v => v.is_open).length;
+      const todayOrders = ordersRes.data ?? [];
+      const todayRevenue = todayOrders.reduce((sum, o) => sum + Number(o.total_amount), 0);
+      const activeOrders = activeOrdersRes.count ?? 0;
+      const cancelledToday = cancelledRes.count ?? 0;
+
+      return { totalUsers, totalVendors, openVendors, todayRevenue, completedToday: todayOrders.length, activeOrders, cancelledToday };
+    },
+    refetchInterval: 60_000,
+  });
+};
 
 const PlatformOverview = () => {
+  const { data: stats, isLoading } = useAdminStats();
+
+  const fmt = (n: number) => n.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
   return (
     <div className="space-y-6">
       {/* System Status */}
@@ -29,7 +63,6 @@ const PlatformOverview = () => {
             <Badge variant="default" className="bg-green-500 hover:bg-green-600">
               All Systems Operational
             </Badge>
-            <span className="text-sm text-muted-foreground">Last updated: 2 minutes ago</span>
           </div>
         </CardContent>
       </Card>
@@ -38,13 +71,12 @@ const PlatformOverview = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1,247</div>
-            <p className="text-xs text-muted-foreground">Customers online</p>
-            <div className="text-sm text-green-600 font-medium mt-1">+12% vs yesterday</div>
+            <div className="text-2xl font-bold">{isLoading ? '—' : stats?.totalUsers.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">Registered accounts</p>
           </CardContent>
         </Card>
 
@@ -54,9 +86,8 @@ const PlatformOverview = () => {
             <Store className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">23</div>
-            <p className="text-xs text-muted-foreground">Open restaurants</p>
-            <div className="text-sm text-green-600 font-medium mt-1">19 accepting orders</div>
+            <div className="text-2xl font-bold">{isLoading ? '—' : stats?.totalVendors}</div>
+            <p className="text-xs text-muted-foreground">{isLoading ? '' : `${stats?.openVendors} currently open`}</p>
           </CardContent>
         </Card>
 
@@ -66,23 +97,22 @@ const PlatformOverview = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">R8,879.70</div>
-            <p className="text-xs text-muted-foreground">Platform: R423.50</p>
-            <div className="text-sm text-green-600 font-medium mt-1">+18% vs yesterday</div>
+            <div className="text-2xl font-bold">{isLoading ? '—' : `R${fmt(stats?.todayRevenue ?? 0)}`}</div>
+            <p className="text-xs text-muted-foreground">From completed orders today</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Orders Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Orders Today</CardTitle>
+            <CardTitle className="text-sm font-medium">Completed Today</CardTitle>
             <CheckCircle className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">156</div>
-            <p className="text-xs text-muted-foreground">Completed</p>
+            <div className="text-2xl font-bold">{isLoading ? '—' : stats?.completedToday}</div>
+            <p className="text-xs text-muted-foreground">Orders fulfilled</p>
           </CardContent>
         </Card>
 
@@ -92,62 +122,22 @@ const PlatformOverview = () => {
             <Clock className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">23</div>
-            <p className="text-xs text-muted-foreground">In progress</p>
+            <div className="text-2xl font-bold">{isLoading ? '—' : stats?.activeOrders}</div>
+            <p className="text-xs text-muted-foreground">In progress now</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Issues</CardTitle>
+            <CardTitle className="text-sm font-medium">Cancelled Today</CardTitle>
             <XCircle className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">4</div>
-            <p className="text-xs text-muted-foreground">Requiring attention</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg. Pickup Time</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">24min</div>
-            <p className="text-xs text-muted-foreground">-3min vs yesterday</p>
+            <div className="text-2xl font-bold">{isLoading ? '—' : stats?.cancelledToday}</div>
+            <p className="text-xs text-muted-foreground">Cancelled orders today</p>
           </CardContent>
         </Card>
       </div>
-
-      {/* System Alerts */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-yellow-500" />
-            Active Alerts & Issues
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 border border-red-200 dark:border-red-800 rounded-lg bg-red-50 dark:bg-red-900/20">
-              <div>
-                <p className="font-medium text-red-800 dark:text-red-200">Payment Failures</p>
-                <p className="text-sm text-red-600 dark:text-red-300">2 orders with payment issues requiring manual review</p>
-              </div>
-              <Button variant="destructive" size="sm">Resolve</Button>
-            </div>
-            
-            <div className="flex items-center justify-between p-3 border border-blue-200 dark:border-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/20">
-              <div>
-                <p className="font-medium text-blue-800 dark:text-blue-200">Customer Complaints</p>
-                <p className="text-sm text-blue-600 dark:text-blue-300">1 new complaint about food quality needs investigation</p>
-              </div>
-              <Button variant="outline" size="sm">Review</Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };
