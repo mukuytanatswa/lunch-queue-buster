@@ -1,4 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="8" fill="#0694c7"/>
-  <text x="16" y="23" font-family="-apple-system, BlinkMacSystemFont, Arial, Helvetica, sans-serif" font-size="14" font-weight="900" fill="white" text-anchor="middle" dominant-baseline="auto">QB</text>
+  <rect width="32" height="32" rx="7" fill="#0694c7"/>
+  <text
+    x="16"
+    y="22"
+    font-family="Arial"
+    font-size="15"
+    font-weight="900"
+    fill="#ffffff"
+    text-anchor="middle"
+    dominant-baseline="auto"
+    letter-spacing="-0.5"
+  >QB</text>
 </svg>
