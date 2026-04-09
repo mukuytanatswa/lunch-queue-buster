@@ -3,18 +3,16 @@ import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Trash2, Plus, Minus, AlertCircle, CheckCircle, CreditCard, Smartphone, Tag, X, CalendarClock } from 'lucide-react';
+import { ArrowLeft, Trash2, Plus, Minus, AlertCircle, CheckCircle, CreditCard, Tag, X, CalendarClock } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/hooks/useAuth';
 import { usePlaceOrder } from '@/hooks/useOrders';
 import { usePromotionByCode } from '@/hooks/usePromotions';
-import { requestPayshapPayment } from '@/lib/payshap';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 
@@ -28,7 +26,7 @@ const Cart = () => {
   const [isCheckoutDialogOpen, setIsCheckoutDialogOpen] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [specialInstructions, setSpecialInstructions] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'payfast' | 'payshap'>('payfast');
+  const paymentMethod = 'payfast';
   const [pickupTime, setPickupTime] = useState('');
   const [promoCodeInput, setPromoCodeInput] = useState('');
   const [appliedPromoCode, setAppliedPromoCode] = useState<string | null>(null);
@@ -142,31 +140,6 @@ const Cart = () => {
       return;
     }
 
-    // Payshap flow
-    try {
-      const result = await requestPayshapPayment({
-        amount: total,
-        currency: 'ZAR',
-        reference: `QB-${Date.now()}`,
-        description: `QuickBite order`,
-      });
-      if (!result.success) {
-        console.error('[Payshap] Payment failed:', result.error);
-        toast.error(result.error || 'Payshap payment failed');
-        return;
-      }
-      await placeOrder.mutateAsync({
-        ...orderPayload,
-        paymentMethod: 'payshap',
-        payshapReference: result.reference,
-      });
-      clearCart();
-      setIsCheckoutDialogOpen(false);
-      setOrderPlaced(true);
-      setTimeout(() => navigate('/orders'), 2000);
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Failed to place order');
-    }
   };
 
   if (items.length === 0 && !orderPlaced) {
@@ -279,17 +252,11 @@ const Cart = () => {
 
             {/* Payment method */}
             <div className="space-y-2 rounded-lg border border-primary/20 bg-primary/5 p-4">
-              <Label className="text-base font-semibold">How would you like to pay? (ZAR)</Label>
-              <RadioGroup value={paymentMethod} onValueChange={(v: 'payfast' | 'payshap') => setPaymentMethod(v)} className="flex flex-col gap-3">
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="payfast" id="payfast" />
-                  <Label htmlFor="payfast" className="flex items-center gap-2 font-normal cursor-pointer"><CreditCard className="h-4 w-4 text-[#1a84c0]" />PayFast (card / EFT / SnapScan)</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="payshap" id="payshap" />
-                  <Label htmlFor="payshap" className="flex items-center gap-2 font-normal cursor-pointer"><Smartphone className="h-4 w-4" />Payshap (instant EFT)</Label>
-                </div>
-              </RadioGroup>
+              <Label className="text-base font-semibold">Payment (ZAR)</Label>
+              <div className="flex items-center gap-2 text-sm">
+                <CreditCard className="h-4 w-4 text-[#1a84c0]" />
+                <span>PayFast — card, EFT or SnapScan</span>
+              </div>
             </div>
 
             {/* Promo code */}
@@ -333,7 +300,7 @@ const Cart = () => {
             <div className="border rounded-md p-4 bg-muted/30">
               <div className="font-medium mb-2">Order Summary</div>
               <div className="text-sm text-muted-foreground space-y-1">
-                <div className="flex justify-between"><span>Payment</span><span>{paymentMethod === 'payfast' ? 'PayFast (online)' : 'Payshap (instant)'}</span></div>
+                <div className="flex justify-between"><span>Payment</span><span>PayFast (online)</span></div>
                 {pickupTime && <div className="flex justify-between"><span>Pickup time</span><span>{format(new Date(pickupTime), 'PPp')}</span></div>}
                 <div className="flex justify-between"><span>{totalItems} items</span><span>R{subtotal.toFixed(2)}</span></div>
                 <div className="flex justify-between"><span>Service fee</span><span>R{serviceFee.toFixed(2)}</span></div>
