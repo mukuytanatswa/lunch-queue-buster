@@ -75,7 +75,19 @@ const VendorManagement = () => {
     });
     setInviting(false);
     if (error || data?.error) {
-      toast.error(data?.error ?? 'Failed to invite vendor');
+      let msg = data?.error ?? 'Failed to invite vendor';
+      if (error && !data?.error) {
+        try {
+          const ctx = (error as any).context;
+          if (ctx instanceof Response) {
+            const body = await ctx.json();
+            msg = body?.error || (error as any).message || msg;
+          } else {
+            msg = (error as any).message || msg;
+          }
+        } catch { /* use fallback */ }
+      }
+      toast.error(msg);
     } else {
       toast.success(`Invite sent to ${inviteForm.email}`);
       setInviteForm({ firstName: '', lastName: '', email: '' });

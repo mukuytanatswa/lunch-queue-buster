@@ -15,6 +15,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     const { email, firstName, lastName } = await req.json();
+    console.log('invite-vendor called for:', email);
 
     if (!email || !firstName || !lastName) {
       return new Response(JSON.stringify({ error: 'email, firstName and lastName are required' }), {
@@ -28,6 +29,7 @@ serve(async (req) => {
     });
 
     if (inviteError) {
+      console.error('inviteUserByEmail error:', inviteError.message);
       return new Response(JSON.stringify({ error: inviteError.message }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
