@@ -8,11 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Icons } from '@/components/ui/icons';
-import { Separator } from '@/components/ui/separator';
 
 const Auth = () => {
-  const { user, signUp, signIn, signInWithOAuth, resetPassword, loading } = useAuth();
+  const { user, signUp, signIn, resetPassword, loading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [showSignInPassword, setShowSignInPassword] = useState(false);
@@ -47,12 +45,6 @@ const Auth = () => {
     const password = formData.get('password') as string;
 
     await signIn(email, password);
-    setIsLoading(false);
-  };
-
-  const handleOAuthSignIn = async (provider: 'google' | 'facebook' | 'twitter' | 'apple') => {
-    setIsLoading(true);
-    await signInWithOAuth(provider);
     setIsLoading(false);
   };
 
@@ -180,35 +172,6 @@ const Auth = () => {
                 </div>
               )}
 
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <Separator className="w-full" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">
-                    Or continue with
-                  </span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => handleOAuthSignIn('google')}
-                  disabled={isLoading}
-                >
-                  <Icons.google className="mr-2 h-4 w-4" />
-                  Google
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => handleOAuthSignIn('apple')}
-                  disabled={isLoading}
-                >
-                  <Icons.apple className="mr-2 h-4 w-4" />
-                  Apple
-                </Button>
-              </div>
             </TabsContent>
 
             <TabsContent value="signup" className="space-y-4">
@@ -282,35 +245,6 @@ const Auth = () => {
                 </Button>
               </form>
 
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <Separator className="w-full" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">
-                    Or sign up with
-                  </span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => handleOAuthSignIn('google')}
-                  disabled={isLoading}
-                >
-                  <Icons.google className="mr-2 h-4 w-4" />
-                  Google
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => handleOAuthSignIn('apple')}
-                  disabled={isLoading}
-                >
-                  <Icons.apple className="mr-2 h-4 w-4" />
-                  Apple
-                </Button>
-              </div>
             </TabsContent>
           </Tabs>
         </CardContent>
