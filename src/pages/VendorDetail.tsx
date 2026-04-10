@@ -140,7 +140,7 @@ const VendorDetail = () => {
             <Button variant="outline" onClick={handleCreateGroupOrder} disabled={creatingGroup}>
               <Users className="h-4 w-4 mr-2" />{creatingGroup ? 'Creating...' : 'Start Group Order'}
             </Button>
-            <span className="text-sm text-muted-foreground">Min. order: R{Number(vendor.minimum_order).toFixed(2)} • Delivery: R{Number(vendor.delivery_fee).toFixed(2)}</span>
+            <span className="text-sm text-muted-foreground">Min. order: R{Number(vendor.minimum_order).toFixed(2)}{Number(vendor.delivery_fee) > 0 ? ` • Service fee: R${Number(vendor.delivery_fee).toFixed(2)}` : ''}</span>
           </div>
 
           {/* Category Filters */}

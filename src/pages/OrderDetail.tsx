@@ -119,7 +119,7 @@ const OrderDetail = () => {
                 </div>
                 <div className="border-t mt-4 pt-4 space-y-1 text-sm">
                   <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>R{Number(order.subtotal).toFixed(2)}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Delivery Fee</span><span>R{Number(order.delivery_fee).toFixed(2)}</span></div>
+                  {Number(order.delivery_fee) > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Service Fee</span><span>R{Number(order.delivery_fee).toFixed(2)}</span></div>}
                   {Number(order.tip_amount) > 0 && (
                     <div className="flex justify-between"><span className="text-muted-foreground">Tip</span><span>R{Number(order.tip_amount).toFixed(2)}</span></div>
                   )}

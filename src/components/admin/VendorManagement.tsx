@@ -182,19 +182,15 @@ const VendorManagement = () => {
                   <Input placeholder="Short description of the shop" value={inviteForm.description} onChange={setField('description')} />
                 </div>
                 <div className="space-y-1">
-                  <Label>Delivery Fee (R)</Label>
-                  <Input type="number" min="0" step="0.01" placeholder="0" value={inviteForm.deliveryFee} onChange={setField('deliveryFee')} />
-                </div>
-                <div className="space-y-1">
                   <Label>Minimum Order (R)</Label>
                   <Input type="number" min="0" step="0.01" placeholder="0" value={inviteForm.minimumOrder} onChange={setField('minimumOrder')} />
                 </div>
                 <div className="space-y-1">
-                  <Label>Delivery Time Min (mins)</Label>
+                  <Label>Prep Time Min (mins)</Label>
                   <Input type="number" min="1" placeholder="15" value={inviteForm.deliveryTimeMin} onChange={setField('deliveryTimeMin')} />
                 </div>
                 <div className="space-y-1">
-                  <Label>Delivery Time Max (mins)</Label>
+                  <Label>Prep Time Max (mins)</Label>
                   <Input type="number" min="1" placeholder="30" value={inviteForm.deliveryTimeMax} onChange={setField('deliveryTimeMax')} />
                 </div>
               </div>
