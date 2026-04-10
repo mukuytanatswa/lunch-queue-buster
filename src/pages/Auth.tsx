@@ -21,18 +21,12 @@ const Auth = () => {
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(
     () => window.location.hash.includes('type=recovery')
   );
-  const [isInviteFlow, setIsInviteFlow] = useState(
-    () => window.location.hash.includes('type=invite')
-  );
   const [showNewPassword, setShowNewPassword] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
         setIsPasswordRecovery(true);
-      }
-      if (event === 'SIGNED_IN' && window.location.hash.includes('type=invite')) {
-        setIsInviteFlow(true);
       }
     });
     return () => subscription.unsubscribe();
@@ -50,13 +44,12 @@ const Auth = () => {
     } else {
       toast({ title: 'Password updated', description: 'You can now sign in with your new password.' });
       setIsPasswordRecovery(false);
-      setIsInviteFlow(false);
       window.location.href = '/';
     }
   };
 
-  // Redirect if already authenticated (but not during invite/recovery flows)
-  if (user && !loading && !isInviteFlow && !isPasswordRecovery) {
+  // Redirect if already authenticated (but not during password recovery)
+  if (user && !loading && !isPasswordRecovery) {
     return <Navigate to="/" replace />;
   }
 
@@ -106,15 +99,13 @@ const Auth = () => {
     );
   }
 
-  if (isPasswordRecovery || isInviteFlow) {
+  if (isPasswordRecovery) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold text-primary">QuickBite</CardTitle>
-            <CardDescription>
-              {isInviteFlow ? 'Welcome! Set a password to activate your account' : 'Set your new password'}
-            </CardDescription>
+            <CardDescription>Set your new password</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSetNewPassword} className="space-y-4">

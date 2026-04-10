@@ -31,7 +31,7 @@ serve(async (req) => {
 
     // Invite the user — Supabase sends them a setup email
     const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
-      data: { first_name: firstName, last_name: lastName },
+      data: { first_name: firstName, last_name: lastName, needs_password_setup: true },
       options: { redirectTo: 'https://app.getquickbite.co.za/auth' },
     });
 

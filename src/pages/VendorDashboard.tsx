@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Store, Users, DollarSign, Clock, Package, Plus, Settings, Tag, Pencil, Trash2, EyeOff, Eye } from 'lucide-react';
+import { Store, Users, DollarSign, Clock, Package, Plus, Settings, Tag, Pencil, Trash2, EyeOff, Eye, KeyRound } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { format, subDays, startOfDay } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -56,6 +56,31 @@ const VendorDashboard = () => {
   const [menuDialogOpen, setMenuDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<null | { id: string; vendor_id: string; name: string; price: number; description: string; category: string; image_url: string; is_available: boolean }>(null);
   const [menuForm, setMenuForm] = useState({ name: '', price: '', description: '', category: '', image_url: '', is_available: true });
+
+  // Password setup (for invited vendors who haven't set a password yet)
+  const needsPasswordSetup = user?.user_metadata?.needs_password_setup === true;
+  const [setupPassword, setSetupPassword] = useState('');
+  const [setupLoading, setSetupLoading] = useState(false);
+  const [showSetupPassword, setShowSetupPassword] = useState(false);
+
+  const handleSetupPassword = async () => {
+    if (!setupPassword || setupPassword.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+    setSetupLoading(true);
+    const { error } = await supabase.auth.updateUser({
+      password: setupPassword,
+      data: { needs_password_setup: false },
+    });
+    setSetupLoading(false);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success('Password set! You can now sign in with your email and password.');
+      setSetupPassword('');
+    }
+  };
 
   // Settings dialogs
   const [infoDialogOpen, setInfoDialogOpen] = useState(false);
@@ -205,6 +230,44 @@ const VendorDashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Blocking dialog for invited vendors who haven't set a password yet */}
+      <Dialog open={needsPasswordSetup}>
+        <DialogContent className="sm:max-w-md" onInteractOutside={e => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5" /> Set your password
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground pt-1">
+              You need to set a password before you can use your account. You'll use this to sign in next time.
+            </p>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="relative">
+              <Input
+                type={showSetupPassword ? 'text' : 'password'}
+                placeholder="Choose a password (min. 6 characters)"
+                value={setupPassword}
+                onChange={e => setSetupPassword(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSetupPassword()}
+              />
+              <button
+                type="button"
+                onClick={() => setShowSetupPassword(v => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showSetupPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleSetupPassword} disabled={setupLoading} className="w-full">
+              {setupLoading && <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />}
+              Set Password
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Navbar />
       <div className="pt-20 px-4 md:px-8 max-w-7xl mx-auto">
         <div className="mb-8">
