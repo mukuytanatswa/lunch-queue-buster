@@ -14,6 +14,7 @@ export interface UserProfile {
   phone?: string;
   avatar_url?: string;
   onboarding_completed: boolean;
+  needs_password_setup?: boolean;
 }
 
 interface AuthContextType {

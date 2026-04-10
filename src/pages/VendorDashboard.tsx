@@ -58,7 +58,7 @@ const VendorDashboard = () => {
   const [menuForm, setMenuForm] = useState({ name: '', price: '', description: '', category: '', image_url: '', is_available: true });
 
   // Password setup (for invited vendors who haven't set a password yet)
-  const needsPasswordSetup = user?.user_metadata?.needs_password_setup === true;
+  const needsPasswordSetup = profile?.needs_password_setup === true;
   const [setupPassword, setSetupPassword] = useState('');
   const [setupLoading, setSetupLoading] = useState(false);
   const [showSetupPassword, setShowSetupPassword] = useState(false);
@@ -77,6 +77,8 @@ const VendorDashboard = () => {
     if (error) {
       toast.error(error.message);
     } else {
+      await supabase.from('profiles').update({ needs_password_setup: false }).eq('user_id', user!.id);
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
       toast.success('Password set! You can now sign in with your email and password.');
       setSetupPassword('');
     }
