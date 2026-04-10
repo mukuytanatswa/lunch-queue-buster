@@ -128,7 +128,7 @@ const Auth = () => {
                       </div>
                     </div>
                     <Button type="submit" className="w-full" disabled={isLoading}>
-                      {isLoading && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
+                      {isLoading && <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />}
                       Sign In
                     </Button>
                   </form>
@@ -154,7 +154,7 @@ const Auth = () => {
                       />
                     </div>
                     <Button type="submit" className="w-full" disabled={isLoading}>
-                      {isLoading && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
+                      {isLoading && <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />}
                       Send Reset Link
                     </Button>
                   </form>
@@ -240,7 +240,7 @@ const Auth = () => {
                   </Select>
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
+                  {isLoading && <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />}
                   Create Account
                 </Button>
               </form>
