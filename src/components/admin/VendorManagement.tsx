@@ -60,18 +60,37 @@ const getStatusBadge = (isActive: boolean, isOpen: boolean) => {
 const VendorManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [inviteForm, setInviteForm] = useState({ firstName: '', lastName: '', email: '' });
+  const [inviteForm, setInviteForm] = useState({
+    firstName: '', lastName: '', email: '',
+    shopName: '', cuisineType: '', location: '', description: '',
+    deliveryFee: '', deliveryTimeMin: '', deliveryTimeMax: '', minimumOrder: '',
+  });
   const [inviting, setInviting] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: vendors = [], isLoading } = useAllVendors();
   const { data: orderStats = {} } = useVendorOrderStats();
 
+  const setField = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+    setInviteForm(p => ({ ...p, [field]: e.target.value }));
+
   const handleInviteVendor = async (e: React.FormEvent) => {
     e.preventDefault();
     setInviting(true);
     const { data, error } = await supabase.functions.invoke('invite-vendor', {
-      body: { email: inviteForm.email, firstName: inviteForm.firstName, lastName: inviteForm.lastName },
+      body: {
+        email: inviteForm.email,
+        firstName: inviteForm.firstName,
+        lastName: inviteForm.lastName,
+        shopName: inviteForm.shopName,
+        cuisineType: inviteForm.cuisineType,
+        location: inviteForm.location,
+        description: inviteForm.description || null,
+        deliveryFee: inviteForm.deliveryFee ? Number(inviteForm.deliveryFee) : 0,
+        deliveryTimeMin: inviteForm.deliveryTimeMin ? Number(inviteForm.deliveryTimeMin) : 15,
+        deliveryTimeMax: inviteForm.deliveryTimeMax ? Number(inviteForm.deliveryTimeMax) : 30,
+        minimumOrder: inviteForm.minimumOrder ? Number(inviteForm.minimumOrder) : 0,
+      },
     });
     setInviting(false);
     if (error || data?.error) {
@@ -90,7 +109,11 @@ const VendorManagement = () => {
       toast.error(msg);
     } else {
       toast.success(`Invite sent to ${inviteForm.email}`);
-      setInviteForm({ firstName: '', lastName: '', email: '' });
+      setInviteForm({
+        firstName: '', lastName: '', email: '',
+        shopName: '', cuisineType: '', location: '', description: '',
+        deliveryFee: '', deliveryTimeMin: '', deliveryTimeMax: '', minimumOrder: '',
+      });
       queryClient.invalidateQueries({ queryKey: ['admin-vendors'] });
     }
   };
@@ -120,20 +143,64 @@ const VendorManagement = () => {
           <CardTitle className="flex items-center gap-2"><UserPlus className="h-5 w-5" />Invite Vendor</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleInviteVendor} className="flex flex-col sm:flex-row gap-3">
-            <div className="flex-1 space-y-1">
-              <Label>First Name</Label>
-              <Input placeholder="Jane" value={inviteForm.firstName} onChange={e => setInviteForm(p => ({ ...p, firstName: e.target.value }))} required />
+          <form onSubmit={handleInviteVendor} className="space-y-6">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-3">Owner Details</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <Label>First Name</Label>
+                  <Input placeholder="Jane" value={inviteForm.firstName} onChange={setField('firstName')} required />
+                </div>
+                <div className="space-y-1">
+                  <Label>Last Name</Label>
+                  <Input placeholder="Doe" value={inviteForm.lastName} onChange={setField('lastName')} required />
+                </div>
+                <div className="space-y-1">
+                  <Label>Email</Label>
+                  <Input type="email" placeholder="vendor@email.com" value={inviteForm.email} onChange={setField('email')} required />
+                </div>
+              </div>
             </div>
-            <div className="flex-1 space-y-1">
-              <Label>Last Name</Label>
-              <Input placeholder="Doe" value={inviteForm.lastName} onChange={e => setInviteForm(p => ({ ...p, lastName: e.target.value }))} required />
+
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-3">Shop Details</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label>Shop Name <span className="text-destructive">*</span></Label>
+                  <Input placeholder="Best Quality Food" value={inviteForm.shopName} onChange={setField('shopName')} required />
+                </div>
+                <div className="space-y-1">
+                  <Label>Cuisine Type <span className="text-destructive">*</span></Label>
+                  <Input placeholder="e.g. Burgers & Wraps" value={inviteForm.cuisineType} onChange={setField('cuisineType')} required />
+                </div>
+                <div className="space-y-1">
+                  <Label>Location <span className="text-destructive">*</span></Label>
+                  <Input placeholder="e.g. Steve Biko Building Level 3" value={inviteForm.location} onChange={setField('location')} required />
+                </div>
+                <div className="space-y-1">
+                  <Label>Description</Label>
+                  <Input placeholder="Short description of the shop" value={inviteForm.description} onChange={setField('description')} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Delivery Fee (R)</Label>
+                  <Input type="number" min="0" step="0.01" placeholder="0" value={inviteForm.deliveryFee} onChange={setField('deliveryFee')} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Minimum Order (R)</Label>
+                  <Input type="number" min="0" step="0.01" placeholder="0" value={inviteForm.minimumOrder} onChange={setField('minimumOrder')} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Delivery Time Min (mins)</Label>
+                  <Input type="number" min="1" placeholder="15" value={inviteForm.deliveryTimeMin} onChange={setField('deliveryTimeMin')} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Delivery Time Max (mins)</Label>
+                  <Input type="number" min="1" placeholder="30" value={inviteForm.deliveryTimeMax} onChange={setField('deliveryTimeMax')} />
+                </div>
+              </div>
             </div>
-            <div className="flex-1 space-y-1">
-              <Label>Email</Label>
-              <Input type="email" placeholder="vendor@email.com" value={inviteForm.email} onChange={e => setInviteForm(p => ({ ...p, email: e.target.value }))} required />
-            </div>
-            <div className="flex items-end">
+
+            <div className="flex justify-end">
               <Button type="submit" disabled={inviting}>{inviting ? 'Sending...' : 'Send Invite'}</Button>
             </div>
           </form>

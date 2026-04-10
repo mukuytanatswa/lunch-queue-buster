@@ -14,13 +14,19 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    const { email, firstName, lastName } = await req.json();
+    const {
+      email, firstName, lastName,
+      shopName, cuisineType, location, description,
+      deliveryFee, deliveryTimeMin, deliveryTimeMax, minimumOrder,
+    } = await req.json();
+
     console.log('invite-vendor called for:', email);
 
-    if (!email || !firstName || !lastName) {
-      return new Response(JSON.stringify({ error: 'email, firstName and lastName are required' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    if (!email || !firstName || !lastName || !shopName || !cuisineType || !location) {
+      return new Response(
+        JSON.stringify({ error: 'email, firstName, lastName, shopName, cuisineType and location are required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
     }
 
     // Invite the user — Supabase sends them a setup email
@@ -35,11 +41,13 @@ serve(async (req) => {
       });
     }
 
+    const userId = inviteData.user.id;
+
     // Set their profile role to vendor
     const { error: profileError } = await supabase
       .from('profiles')
       .upsert({
-        user_id: inviteData.user.id,
+        user_id: userId,
         role: 'vendor',
         first_name: firstName,
         last_name: lastName,
@@ -47,7 +55,32 @@ serve(async (req) => {
       }, { onConflict: 'user_id' });
 
     if (profileError) {
+      console.error('profile upsert error:', profileError.message);
       return new Response(JSON.stringify({ error: profileError.message }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Create the vendors table row so the vendor dashboard works immediately
+    const { error: vendorError } = await supabase
+      .from('vendors')
+      .insert({
+        user_id: userId,
+        name: shopName,
+        cuisine_type: cuisineType,
+        location,
+        description: description ?? null,
+        email,
+        delivery_fee: deliveryFee ?? 0,
+        delivery_time_min: deliveryTimeMin ?? 15,
+        delivery_time_max: deliveryTimeMax ?? 30,
+        minimum_order: minimumOrder ?? 0,
+        is_active: true,
+      });
+
+    if (vendorError) {
+      console.error('vendor insert error:', vendorError.message);
+      return new Response(JSON.stringify({ error: `Vendor profile created but shop record failed: ${vendorError.message}` }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
