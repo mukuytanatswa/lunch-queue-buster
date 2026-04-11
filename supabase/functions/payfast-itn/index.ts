@@ -6,15 +6,6 @@ function md5(text: string): string {
   return createHash('md5').update(text).digest('hex');
 }
 
-function buildParamString(params: Record<string, string>, passphrase?: string): string {
-  const parts = Object.entries(params)
-    .filter(([, v]) => v !== '' && v != null)
-    .map(([k, v]) => `${k}=${encodeURIComponent(v.trim()).replace(/%20/g, '+')}`)
-    .join('&');
-  return passphrase
-    ? `${parts}&passphrase=${encodeURIComponent(passphrase.trim()).replace(/%20/g, '+')}`
-    : parts;
-}
 
 serve(async (req) => {
   // PayFast sends a POST with URL-encoded form data
@@ -30,11 +21,10 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
     const body = await req.text();
-    const params = Object.fromEntries(new URLSearchParams(body));
 
-    // Preserve original param order — PayFast signature is order-sensitive
-    const { signature, ...dataWithoutSignature } = params;
-    const { merchant_id, m_payment_id, payment_status } = params;
+    // Parse decoded values for logic — but keep raw pairs for signature verification
+    const params = Object.fromEntries(new URLSearchParams(body));
+    const { merchant_id, m_payment_id, payment_status, signature } = params;
 
     // 1. Verify merchant ID matches
     if (merchant_id !== merchantId) {
@@ -42,8 +32,12 @@ serve(async (req) => {
       return new Response('Invalid merchant', { status: 400 });
     }
 
-    // 2. Verify MD5 signature
-    const paramString = buildParamString(dataWithoutSignature, passphrase || undefined);
+    // 2. Verify MD5 signature — use raw body to avoid re-encoding differences
+    const rawPairs = body.split('&').filter(p => p !== '' && !p.startsWith('signature='));
+    let paramString = rawPairs.join('&');
+    if (passphrase) {
+      paramString += `&passphrase=${encodeURIComponent(passphrase.trim()).replace(/%20/g, '+')}`;
+    }
     const expectedSignature = md5(paramString);
 
     if (signature !== expectedSignature) {
