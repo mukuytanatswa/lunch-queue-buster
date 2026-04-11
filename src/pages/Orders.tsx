@@ -99,7 +99,7 @@ const Orders = () => {
           {payfastBanner && (
             <div className="flex items-center gap-3 mb-6 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-blue-800">
               <CreditCard className="h-5 w-5 flex-shrink-0" />
-              <p className="flex-1 text-sm font-medium">Your PayFast payment is being confirmed — this page updates automatically once received.</p>
+              <p className="flex-1 text-sm font-medium">Your PayFast payment is being confirmed. This page updates automatically once received.</p>
               <button onClick={() => setPayfastBanner(false)} className="text-blue-600 hover:text-blue-800">
                 <X className="h-4 w-4" />
               </button>

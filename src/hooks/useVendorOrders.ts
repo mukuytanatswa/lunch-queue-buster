@@ -29,8 +29,7 @@ export function useVendorOrders(vendorId: string | undefined) {
         .from('orders')
         .select(`
           *,
-          order_items (*, menu_items (name, image_url)),
-          profiles:customer_id (first_name, last_name, phone)
+          order_items (*, menu_items (name, image_url))
         `)
         .eq('vendor_id', vendorId!)
         .order('created_at', { ascending: false });

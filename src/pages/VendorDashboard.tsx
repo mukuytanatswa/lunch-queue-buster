@@ -160,7 +160,10 @@ const VendorDashboard = () => {
         toast.success('Item added');
       }
       setMenuDialogOpen(false);
-    } catch { toast.error('Failed to save item'); }
+    } catch (err: any) {
+      console.error('Menu save error:', err);
+      toast.error(err?.message || err?.details || err?.hint || JSON.stringify(err) || 'Failed to save item');
+    }
   };
 
   const handleDeleteItem = async (id: string, vendorId: string) => {
