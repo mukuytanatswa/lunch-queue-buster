@@ -119,7 +119,7 @@ interface PlaceOrderInput {
   customerPhone?: string;
   subtotal: number;
   totalAmount: number;
-  paymentMethod?: 'payfast' | 'payshap';
+  paymentMethod?: 'payfast' | 'payshap' | 'yoco';
   scheduledFor: string; // required — every order is a pre-order
   promotionCode?: string | null;
   payshapReference?: string | null;

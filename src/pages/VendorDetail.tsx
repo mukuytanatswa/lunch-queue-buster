@@ -53,12 +53,16 @@ const VendorDetail = () => {
     }
     setCreatingGroup(true);
     try {
+      // Generate invite_code client-side — avoids relying on DB DEFAULT functions
+      const inviteCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+
       const { data, error } = await supabase
         .from('group_orders')
         .insert({
           creator_id: user.id,
           vendor_id: vendor!.id,
           name: `Group Order - ${vendor!.name}`,
+          invite_code: inviteCode,
         })
         .select()
         .single();
@@ -66,16 +70,18 @@ const VendorDetail = () => {
       if (error) throw error;
 
       // Join as member
-      await supabase.from('group_order_members').insert({
+      const { error: memberError } = await supabase.from('group_order_members').insert({
         group_order_id: data.id,
         user_id: user.id,
       });
+      if (memberError) throw memberError;
 
       navigate(`/group-order/${data.id}`);
       toast.success('Group order created! Share the link with friends.');
     } catch (err) {
       console.error('Group order creation error:', err);
-      toast.error('Failed to create group order');
+      const msg = err instanceof Error ? err.message : 'Failed to create group order';
+      toast.error(msg);
     } finally {
       setCreatingGroup(false);
     }
@@ -125,7 +131,7 @@ const VendorDetail = () => {
               <h1 className="text-3xl md:text-4xl font-bold">{vendor.name}</h1>
               <div className="flex flex-wrap items-center gap-4 mt-2">
                 <Badge variant="outline" className="bg-white/20 text-white border-white/30">{vendor.cuisine_type}</Badge>
-                <div className="flex items-center"><Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" /><span>{Number(vendor.rating).toFixed(1)}</span></div>
+                {vendor.rating > 0 && <div className="flex items-center"><Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" /><span>{Number(vendor.rating).toFixed(1)}</span></div>}
                 <div className="flex items-center"><Clock className="h-4 w-4 mr-1" /><span>{vendor.delivery_time_min}-{vendor.delivery_time_max} min</span></div>
                 <div className="flex items-center"><MapPin className="h-4 w-4 mr-1" /><span>{vendor.location}</span></div>
               </div>

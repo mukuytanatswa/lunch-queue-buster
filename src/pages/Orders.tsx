@@ -29,6 +29,7 @@ const Orders = () => {
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const [payfastBanner, setPayfastBanner] = useState(searchParams.get('payfast') === '1');
+  const [yocoBanner, setYocoBanner] = useState(searchParams.get('yoco') === '1');
   const { user, loading: authLoading } = useAuth();
   const { data: orders, isLoading } = useOrders();
   const cancelOrder = useCancelOrder();
@@ -106,6 +107,16 @@ const Orders = () => {
             </div>
           )}
 
+          {yocoBanner && (
+            <div className="flex items-center gap-3 mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-800">
+              <CreditCard className="h-5 w-5 flex-shrink-0" />
+              <p className="flex-1 text-sm font-medium">Your Yoco payment is being confirmed. This page updates automatically once received.</p>
+              <button onClick={() => setYocoBanner(false)} className="text-red-600 hover:text-red-800">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
           {isLoading && (
             <div className="space-y-4">
               {[1, 2, 3].map(i => <div key={i} className="h-32 rounded-lg bg-muted animate-pulse" />)}
@@ -141,7 +152,7 @@ const Orders = () => {
                           <Badge className={`${status.color}`}>
                             <StatusIcon className="h-4 w-4 mr-1" />{status.label}
                           </Badge>
-                          {(order as any).payment_method === 'payfast' && (order as any).payment_status !== 'paid' && (
+                          {['payfast', 'yoco'].includes((order as any).payment_method) && (order as any).payment_status !== 'paid' && (
                             <Badge variant="outline" className="border-amber-400 text-amber-700">
                               <CreditCard className="h-3 w-3 mr-1" />Awaiting payment
                             </Badge>

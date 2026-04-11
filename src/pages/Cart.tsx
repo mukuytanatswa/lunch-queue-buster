@@ -26,7 +26,7 @@ const Cart = () => {
   const [isCheckoutDialogOpen, setIsCheckoutDialogOpen] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [specialInstructions, setSpecialInstructions] = useState('');
-  const paymentMethod = 'payfast';
+  const [paymentMethod, setPaymentMethod] = useState<'payfast' | 'yoco'>('payfast');
   const [pickupTime, setPickupTime] = useState('');
   const [promoCodeInput, setPromoCodeInput] = useState('');
   const [appliedPromoCode, setAppliedPromoCode] = useState<string | null>(null);
@@ -94,6 +94,39 @@ const Cart = () => {
     form.submit();
   };
 
+  const redirectToYoco = async (orderId: string) => {
+    const { data, error } = await supabase.functions.invoke('create-yoco-payment', {
+      body: {
+        orderId,
+        amount: total,
+        successUrl: `${window.location.origin}/orders?yoco=1`,
+        cancelUrl: `${window.location.origin}/cart`,
+      },
+    });
+
+    if (error || !data?.checkout_url) {
+      let detail = data?.error ?? 'Yoco setup failed';
+      if (error) {
+        try {
+          const ctx = (error as any).context;
+          if (ctx instanceof Response) {
+            const body = await ctx.json();
+            detail = body?.error || body?.message || (error as any).message || detail;
+          } else {
+            detail = (error as any).message || detail;
+          }
+        } catch {
+          detail = (error as any).message || detail;
+        }
+      }
+      throw new Error(detail);
+    }
+
+    clearCart();
+    setIsCheckoutDialogOpen(false);
+    window.location.href = data.checkout_url;
+  };
+
   const handlePlaceOrder = async () => {
     if (!user) {
       toast.error('Please sign in to place an order');
@@ -135,6 +168,19 @@ const Cart = () => {
       } catch (err: unknown) {
         console.error('[PayFast] Payment error:', err);
         const msg = err instanceof Error ? err.message : (err as any)?.message ?? 'Failed to initiate PayFast payment';
+        toast.error(msg);
+      }
+      return;
+    }
+
+    if (paymentMethod === 'yoco') {
+      try {
+        const order = await placeOrder.mutateAsync({ ...orderPayload, paymentMethod: 'yoco' });
+        toast.info('Redirecting to Yoco...');
+        await redirectToYoco(order.id);
+      } catch (err: unknown) {
+        console.error('[Yoco] Payment error:', err);
+        const msg = err instanceof Error ? err.message : (err as any)?.message ?? 'Failed to initiate Yoco payment';
         toast.error(msg);
       }
       return;
@@ -253,10 +299,27 @@ const Cart = () => {
             {/* Payment method */}
             <div className="space-y-2 rounded-lg border border-primary/20 bg-primary/5 p-4">
               <Label className="text-base font-semibold">Payment (ZAR)</Label>
-              <div className="flex items-center gap-2 text-sm">
-                <CreditCard className="h-4 w-4 text-[#1a84c0]" />
-                <span>PayFast — card, EFT or SnapScan</span>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('payfast')}
+                  className={`flex items-center gap-2 text-sm rounded-md border px-3 py-2 transition-colors ${paymentMethod === 'payfast' ? 'border-primary bg-primary/10 font-medium' : 'border-border bg-background'}`}
+                >
+                  <CreditCard className="h-4 w-4 text-[#1a84c0] flex-shrink-0" />
+                  <span>PayFast</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('yoco')}
+                  className={`flex items-center gap-2 text-sm rounded-md border px-3 py-2 transition-colors ${paymentMethod === 'yoco' ? 'border-primary bg-primary/10 font-medium' : 'border-border bg-background'}`}
+                >
+                  <CreditCard className="h-4 w-4 text-[#e3232c] flex-shrink-0" />
+                  <span>Yoco</span>
+                </button>
               </div>
+              <p className="text-xs text-muted-foreground">
+                {paymentMethod === 'payfast' ? 'Card, EFT or SnapScan via PayFast' : 'Card payment via Yoco'}
+              </p>
             </div>
 
             {/* Promo code */}
@@ -300,7 +363,7 @@ const Cart = () => {
             <div className="border rounded-md p-4 bg-muted/30">
               <div className="font-medium mb-2">Order Summary</div>
               <div className="text-sm text-muted-foreground space-y-1">
-                <div className="flex justify-between"><span>Payment</span><span>PayFast (online)</span></div>
+                <div className="flex justify-between"><span>Payment</span><span>{paymentMethod === 'yoco' ? 'Yoco (online)' : 'PayFast (online)'}</span></div>
                 {pickupTime && <div className="flex justify-between"><span>Pickup time</span><span>{format(new Date(pickupTime), 'PPp')}</span></div>}
                 <div className="flex justify-between"><span>{totalItems} items</span><span>R{subtotal.toFixed(2)}</span></div>
                 <div className="flex justify-between"><span>Service fee</span><span>R{serviceFee.toFixed(2)}</span></div>
@@ -312,7 +375,7 @@ const Cart = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsCheckoutDialogOpen(false)}>Cancel</Button>
             <Button onClick={handlePlaceOrder} disabled={placeOrder.isPending}>
-              {placeOrder.isPending ? 'Processing...' : paymentMethod === 'payfast' ? 'Pay with PayFast' : 'Place Order'}
+              {placeOrder.isPending ? 'Processing...' : paymentMethod === 'yoco' ? 'Pay with Yoco' : 'Pay with PayFast'}
             </Button>
           </DialogFooter>
         </DialogContent>
