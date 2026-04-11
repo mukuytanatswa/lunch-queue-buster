@@ -24,8 +24,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { toast } from 'sonner';
 
 const statusFlow: Record<string, string | null> = {
-  pending: 'confirmed',
-  confirmed: 'preparing',
+  pending: 'preparing',
   preparing: 'ready',
   ready: 'delivered',
   delivered: null,
@@ -391,7 +390,7 @@ const VendorDashboard = () => {
                           <p className="text-sm font-semibold">R{Number(order.total_amount).toFixed(2)}</p>
                           {nextStatus && (
                             <Button size="sm" onClick={() => handleNextStatus(order.id, order.status)} disabled={updateStatus.isPending}>
-                              Mark {nextStatus === 'confirmed' ? 'Confirmed' : nextStatus === 'preparing' ? 'Preparing' : nextStatus === 'ready' ? 'Ready for pickup' : 'Collected'}
+                              Mark {nextStatus === 'preparing' ? 'Preparing' : nextStatus === 'ready' ? 'Ready for pickup' : 'Collected'}
                             </Button>
                           )}
                         </div>
