@@ -26,6 +26,7 @@ export const useOrders = () => {
       return data;
     },
     enabled: !!user,
+    refetchInterval: 10000,
   });
 };
 
