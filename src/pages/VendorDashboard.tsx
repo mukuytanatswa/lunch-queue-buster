@@ -23,6 +23,31 @@ import { format, subDays, startOfDay } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { toast } from 'sonner';
 
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
+}
+
+function playOrderSound() {
+  try {
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.15);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.5);
+  } catch {
+    // Audio not available, silently skip
+  }
+}
+
 const statusFlow: Record<string, string | null> = {
   pending: 'preparing',
   preparing: 'ready',
@@ -185,6 +210,41 @@ const VendorDashboard = () => {
     }
   }, [user, profile, loading, navigate]);
 
+  // Register service worker and subscribe to push notifications
+  useEffect(() => {
+    if (!vendor?.id) return;
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+
+    const registerAndSubscribe = async () => {
+      try {
+        const reg = await navigator.serviceWorker.register('/sw.js');
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') return;
+
+        const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+        if (!vapidPublicKey) return;
+
+        const existing = await reg.pushManager.getSubscription();
+        const subscription = existing ?? await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+        });
+
+        const json = subscription.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } };
+        await supabase.from('push_subscriptions').upsert({
+          vendor_id: vendor.id,
+          endpoint: json.endpoint,
+          p256dh: json.keys.p256dh,
+          auth: json.keys.auth,
+        }, { onConflict: 'endpoint' });
+      } catch (err) {
+        console.error('Push subscription failed:', err);
+      }
+    };
+
+    registerAndSubscribe();
+  }, [vendor?.id]);
+
   // Live updates: when a student places an order for this vendor, refresh the orders list
   useEffect(() => {
     if (!vendor?.id) return;
@@ -195,8 +255,15 @@ const VendorDashboard = () => {
         schema: 'public',
         table: 'orders',
         filter: `vendor_id=eq.${vendor.id}`,
-      }, () => {
+      }, (payload) => {
         queryClient.invalidateQueries({ queryKey: ['vendor_orders', vendor.id] });
+        playOrderSound();
+        const amount = payload.new?.total_amount ? `R${Number(payload.new.total_amount).toFixed(2)}` : '';
+        toast('New order received!', {
+          description: amount ? `Order total: ${amount} — check your Orders tab.` : 'Check your Orders tab.',
+          duration: Infinity,
+          action: { label: 'Dismiss', onClick: () => {} },
+        });
       })
       .on('postgres_changes', {
         event: 'UPDATE',
