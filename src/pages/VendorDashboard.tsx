@@ -263,17 +263,27 @@ const VendorDashboard = () => {
         queryClient.invalidateQueries({ queryKey: ['vendor_orders', vendor.id] });
         if (payload.new?.payment_method === 'cash') {
           playOrderSound();
-          const { data: items } = await supabase
-            .from('order_items')
-            .select('quantity, menu_items(name)')
-            .eq('order_id', payload.new.id);
-          const summary = items?.slice(0, 2).map((i: any) => `${i.quantity}x ${i.menu_items?.name}`).join(', ') ?? '';
-          const extra = (items?.length ?? 0) > 2 ? ` +${items!.length - 2} more` : '';
-          toast('New order received!', {
-            description: summary ? `${summary}${extra}` : 'Check your Orders tab.',
+          const toastId = toast('New order received!', {
+            description: 'Check your Orders tab.',
             duration: Infinity,
             action: { label: 'Dismiss', onClick: () => {} },
           });
+          try {
+            const { data: items } = await supabase
+              .from('order_items')
+              .select('quantity, menu_items(name)')
+              .eq('order_id', payload.new.id);
+            if (items && items.length > 0) {
+              const summary = items.slice(0, 2).map((i: any) => `${i.quantity}x ${i.menu_items?.name}`).join(', ');
+              const extra = items.length > 2 ? ` +${items.length - 2} more` : '';
+              toast('New order received!', {
+                id: toastId,
+                description: `${summary}${extra}`,
+                duration: Infinity,
+                action: { label: 'Dismiss', onClick: () => {} },
+              });
+            }
+          } catch { /* keep generic toast */ }
         }
       })
       .on('postgres_changes', {
@@ -286,17 +296,27 @@ const VendorDashboard = () => {
         const justPaid = payload.new?.payment_status === 'paid' && payload.old?.payment_status !== 'paid';
         if (justPaid) {
           playOrderSound();
-          const { data: items } = await supabase
-            .from('order_items')
-            .select('quantity, menu_items(name)')
-            .eq('order_id', payload.new.id);
-          const summary = items?.slice(0, 2).map((i: any) => `${i.quantity}x ${i.menu_items?.name}`).join(', ') ?? '';
-          const extra = (items?.length ?? 0) > 2 ? ` +${items!.length - 2} more` : '';
-          toast('Payment confirmed! New order received!', {
-            description: summary ? `${summary}${extra}` : 'Check your Orders tab.',
+          const toastId = toast('Payment confirmed! New order received!', {
+            description: 'Check your Orders tab.',
             duration: Infinity,
             action: { label: 'Dismiss', onClick: () => {} },
           });
+          try {
+            const { data: items } = await supabase
+              .from('order_items')
+              .select('quantity, menu_items(name)')
+              .eq('order_id', payload.new.id);
+            if (items && items.length > 0) {
+              const summary = items.slice(0, 2).map((i: any) => `${i.quantity}x ${i.menu_items?.name}`).join(', ');
+              const extra = items.length > 2 ? ` +${items.length - 2} more` : '';
+              toast('Payment confirmed! New order received!', {
+                id: toastId,
+                description: `${summary}${extra}`,
+                duration: Infinity,
+                action: { label: 'Dismiss', onClick: () => {} },
+              });
+            }
+          } catch { /* keep generic toast */ }
         }
       })
       .subscribe();

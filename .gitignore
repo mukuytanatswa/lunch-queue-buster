@@ -28,7 +28,7 @@ Payfast_merchant_ID.txt
 .env
 .env.local
 .env.*.local
-
+vapid keys.txt
 # Local scratch files
 branch.txt
 branch\ issue\ android\ studio.png
