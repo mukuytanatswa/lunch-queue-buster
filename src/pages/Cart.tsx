@@ -265,7 +265,7 @@ const Cart = () => {
                 Proceed to Checkout
               </Button>
               <div className="mt-4 text-xs text-muted-foreground">
-                <p className="flex items-start gap-1"><AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />All orders are pickup — collect from the vendor at your chosen time</p>
+                <p className="flex items-start gap-1"><AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />All orders are pickup, collect from the vendor at your chosen time</p>
               </div>
             </div>
           </div>
