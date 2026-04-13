@@ -17,9 +17,23 @@ serve(async (req) => {
     // Supabase database webhook sends { type, table, record, old_record }
     const body = await req.json();
     const order = body.record;
+    const oldRecord = body.old_record;
+    const eventType = body.type; // 'INSERT' or 'UPDATE'
 
     if (!order?.id || !order?.vendor_id) {
       return new Response('Missing order data', { status: 400 });
+    }
+
+    // For new orders: only notify immediately for cash (card orders notify on payment confirmation)
+    if (eventType === 'INSERT' && order.payment_method !== 'cash') {
+      return new Response('Skipping — awaiting payment', { status: 200 });
+    }
+
+    // For updates: only notify when payment_status flips to 'paid'
+    if (eventType === 'UPDATE') {
+      if (order.payment_status !== 'paid' || oldRecord?.payment_status === 'paid') {
+        return new Response('Skipping — not a payment confirmation', { status: 200 });
+      }
     }
 
     // Get customer name

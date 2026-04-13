@@ -257,21 +257,35 @@ const VendorDashboard = () => {
         filter: `vendor_id=eq.${vendor.id}`,
       }, (payload) => {
         queryClient.invalidateQueries({ queryKey: ['vendor_orders', vendor.id] });
-        playOrderSound();
-        const amount = payload.new?.total_amount ? `R${Number(payload.new.total_amount).toFixed(2)}` : '';
-        toast('New order received!', {
-          description: amount ? `Order total: ${amount}. Check your Orders tab.` : 'Check your Orders tab.',
-          duration: Infinity,
-          action: { label: 'Dismiss', onClick: () => {} },
-        });
+        // Only alert immediately for cash orders — card orders alert on payment confirmation
+        if (payload.new?.payment_method === 'cash') {
+          playOrderSound();
+          const amount = payload.new?.total_amount ? `R${Number(payload.new.total_amount).toFixed(2)}` : '';
+          toast('New order received!', {
+            description: amount ? `Order total: ${amount}. Check your Orders tab.` : 'Check your Orders tab.',
+            duration: Infinity,
+            action: { label: 'Dismiss', onClick: () => {} },
+          });
+        }
       })
       .on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public',
         table: 'orders',
         filter: `vendor_id=eq.${vendor.id}`,
-      }, () => {
+      }, (payload) => {
         queryClient.invalidateQueries({ queryKey: ['vendor_orders', vendor.id] });
+        // Alert when a card payment is confirmed
+        const justPaid = payload.new?.payment_status === 'paid' && payload.old?.payment_status !== 'paid';
+        if (justPaid) {
+          playOrderSound();
+          const amount = payload.new?.total_amount ? `R${Number(payload.new.total_amount).toFixed(2)}` : '';
+          toast('Payment confirmed! New order received!', {
+            description: amount ? `Order total: ${amount}. Check your Orders tab.` : 'Check your Orders tab.',
+            duration: Infinity,
+            action: { label: 'Dismiss', onClick: () => {} },
+          });
+        }
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };

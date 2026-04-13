@@ -32,6 +32,7 @@ export function useVendorOrders(vendorId: string | undefined) {
           order_items (*, menu_items (name, image_url))
         `)
         .eq('vendor_id', vendorId!)
+        .or('payment_method.eq.cash,payment_status.eq.paid')
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data;
