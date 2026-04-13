@@ -21,8 +21,6 @@ import VendorDetail from "./pages/VendorDetail";
 import VendorDashboard from "./pages/VendorDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import InviteAccept from "./pages/InviteAccept";
-import GroupOrder from "./pages/GroupOrder";
-import JoinGroupOrder from "./pages/JoinGroupOrder";
 import OrderTracking from "./pages/OrderTracking";
 import FAQ from "./pages/FAQ";
 import Terms from "./pages/Terms";
@@ -60,8 +58,6 @@ const App = () => (
               <Route path="/vendor-dashboard" element={<ProtectedRoute role="vendor"><VendorDashboard /></ProtectedRoute>} />
               <Route path="/admin-dashboard" element={<ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>} />
               <Route path="/invite" element={<InviteAccept />} />
-              <Route path="/group-order/:id" element={<GroupOrder />} />
-              <Route path="/join/:code" element={<JoinGroupOrder />} />
               <Route path="/orders/:orderId/track" element={<OrderTracking />} />
               <Route path="/faq" element={<FAQ />} />
               <Route path="/terms" element={<Terms />} />
