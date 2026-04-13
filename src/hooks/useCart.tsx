@@ -78,7 +78,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
   const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
-  const serviceFee = items.length > 0 ? 2 : 0;
+  const serviceFee = 0;
   const total = subtotal + serviceFee;
 
   return (

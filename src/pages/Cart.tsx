@@ -256,7 +256,6 @@ const Cart = () => {
               <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>R{subtotal.toFixed(2)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Service Fee</span><span>R{serviceFee.toFixed(2)}</span></div>
                 <div className="border-t pt-3 flex justify-between font-semibold"><span>Total</span><span>R{total.toFixed(2)}</span></div>
               </div>
               <Button className="w-full" onClick={() => {
@@ -366,7 +365,6 @@ const Cart = () => {
                 <div className="flex justify-between"><span>Payment</span><span>{paymentMethod === 'yoco' ? 'Yoco (online)' : 'PayFast (online)'}</span></div>
                 {pickupTime && <div className="flex justify-between"><span>Pickup time</span><span>{format(new Date(pickupTime), 'PPp')}</span></div>}
                 <div className="flex justify-between"><span>{totalItems} items</span><span>R{subtotal.toFixed(2)}</span></div>
-                <div className="flex justify-between"><span>Service fee</span><span>R{serviceFee.toFixed(2)}</span></div>
                 {discount > 0 && <div className="flex justify-between text-green-700"><span>Discount</span><span>−R{discount.toFixed(2)}</span></div>}
                 <div className="flex justify-between font-medium pt-1 mt-1 border-t"><span>Total (ZAR)</span><span>R{total.toFixed(2)}</span></div>
               </div>
