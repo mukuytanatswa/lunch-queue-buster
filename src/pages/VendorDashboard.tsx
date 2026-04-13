@@ -61,7 +61,7 @@ const VendorDashboard = () => {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(true);
   const [showTodayOrders, setShowTodayOrders] = useState(false);
-  const [showRevenue, setShowRevenue] = useState(false);
+  const [showTotalRevenue, setShowTotalRevenue] = useState(false);
   const [showTotalOrders, setShowTotalOrders] = useState(false);
   const [showPromotions, setShowPromotions] = useState(false);
   const queryClient = useQueryClient();
@@ -395,7 +395,7 @@ const VendorDashboard = () => {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Today&apos;s Orders</CardTitle>
@@ -406,18 +406,6 @@ const VendorDashboard = () => {
             <CardContent>
               <div className="text-2xl font-bold">{showTodayOrders ? todayOrders.length : '••••'}</div>
               <p className="text-xs text-muted-foreground">Order tracking below</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Today&apos;s Revenue</CardTitle>
-              <button onClick={() => setShowRevenue(v => !v)} className="text-muted-foreground hover:text-foreground transition-colors">
-                {showRevenue ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{showRevenue ? `R${todayRevenue.toFixed(2)}` : '••••'}</div>
-              <p className="text-xs text-muted-foreground">From {todayOrders.length} orders</p>
             </CardContent>
           </Card>
           <Card>
@@ -684,6 +672,7 @@ const VendorDashboard = () => {
                 return { day: dayStr, revenue: parseFloat(revenue.toFixed(2)) };
               });
               const weekTotal = revenueByDay.reduce((s, d) => s + d.revenue, 0);
+              const totalRevenue = completedOrders.reduce((sum: number, o: any) => sum + Number(o.total_amount), 0);
               // Popular items
               const itemCounts: Record<string, number> = {};
               completedOrders.forEach((o: any) => {
@@ -696,6 +685,25 @@ const VendorDashboard = () => {
                 .sort(([, a], [, b]) => b - a)
                 .slice(0, 5);
               return (
+                <>
+                <Card className="mb-6">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Revenue (All Time)</CardTitle>
+                    <button
+                      onClick={() => setShowTotalRevenue(v => !v)}
+                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showTotalRevenue ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showTotalRevenue ? 'Hide' : 'Reveal'}
+                    </button>
+                  </CardHeader>
+                  <CardContent>
+                    <div className={`text-2xl font-bold transition-all duration-300 ${showTotalRevenue ? '' : 'blur-sm select-none'}`}>
+                      R{totalRevenue.toFixed(2)}
+                    </div>
+                    <p className="text-xs text-muted-foreground">From completed orders</p>
+                  </CardContent>
+                </Card>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <Card>
                     <CardHeader>
@@ -731,6 +739,7 @@ const VendorDashboard = () => {
                     </CardContent>
                   </Card>
                 </div>
+                </>
               );
             })()}
           </TabsContent>

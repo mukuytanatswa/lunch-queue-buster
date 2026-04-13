@@ -1,27 +1,22 @@
 
 import { useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Clock, MapPin, Star, Plus, Minus, Users } from 'lucide-react';
+import { ArrowLeft, Clock, MapPin, Star, Plus, Minus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { useVendor, useMenuItems } from '@/hooks/useVendors';
 import { useCart } from '@/hooks/useCart';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
 
 const VendorDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const { data: vendor, isLoading: vendorLoading } = useVendor(id || '');
   const { data: menuItems, isLoading: menuLoading } = useMenuItems(id || '');
   const { addItem } = useCart();
-  const { user } = useAuth();
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
-  const [creatingGroup, setCreatingGroup] = useState(false);
 
   const categories = menuItems
     ? Array.from(new Set(menuItems.map(i => i.category).filter(Boolean)))
@@ -46,46 +41,6 @@ const VendorDetail = () => {
     toast.success(`${item.name} added to cart`);
   };
 
-  const handleCreateGroupOrder = async () => {
-    if (!user) {
-      navigate('/auth');
-      return;
-    }
-    setCreatingGroup(true);
-    try {
-      // Generate invite_code client-side — avoids relying on DB DEFAULT functions
-      const inviteCode = Math.random().toString(36).substring(2, 10).toUpperCase();
-
-      const { data, error } = await supabase
-        .from('group_orders')
-        .insert({
-          creator_id: user.id,
-          vendor_id: vendor!.id,
-          name: `Group Order - ${vendor!.name}`,
-          invite_code: inviteCode,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // Join as member
-      const { error: memberError } = await supabase.from('group_order_members').insert({
-        group_order_id: data.id,
-        user_id: user.id,
-      });
-      if (memberError) throw memberError;
-
-      navigate(`/group-order/${data.id}`);
-      toast.success('Group order created! Share the link with friends.');
-    } catch (err) {
-      console.error('Group order creation error:', err);
-      const msg = err instanceof Error ? err.message : 'Failed to create group order';
-      toast.error(msg);
-    } finally {
-      setCreatingGroup(false);
-    }
-  };
 
   if (vendorLoading) {
     return (
@@ -143,9 +98,6 @@ const VendorDetail = () => {
           {vendor.description && <p className="text-muted-foreground mb-6">{vendor.description}</p>}
 
           <div className="flex flex-wrap items-center gap-3 mb-6">
-            <Button variant="outline" onClick={handleCreateGroupOrder} disabled={creatingGroup}>
-              <Users className="h-4 w-4 mr-2" />{creatingGroup ? 'Creating...' : 'Start Group Order'}
-            </Button>
             <span className="text-sm text-muted-foreground">Min. order: R{Number(vendor.minimum_order).toFixed(2)}{Number(vendor.delivery_fee) > 0 ? ` • Service fee: R${Number(vendor.delivery_fee).toFixed(2)}` : ''}</span>
           </div>
 
