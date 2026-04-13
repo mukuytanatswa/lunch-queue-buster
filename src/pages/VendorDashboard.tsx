@@ -60,7 +60,10 @@ const VendorDashboard = () => {
   const { user, profile, loading } = useAuth();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(true);
-  const [showStats, setShowStats] = useState(false);
+  const [showTodayOrders, setShowTodayOrders] = useState(false);
+  const [showRevenue, setShowRevenue] = useState(false);
+  const [showTotalOrders, setShowTotalOrders] = useState(false);
+  const [showPromotions, setShowPromotions] = useState(false);
   const queryClient = useQueryClient();
   const { data: vendor } = useVendorByUser(user?.id);
   const { data: vendorOrders, isLoading: ordersLoading } = useVendorOrders(vendor?.id);
@@ -362,58 +365,55 @@ const VendorDashboard = () => {
         </div>
 
         {/* Quick Stats */}
-        <div className="mb-8">
-          <div className="flex justify-end mb-2">
-            <button
-              onClick={() => setShowStats(v => !v)}
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {showStats ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              {showStats ? 'Hide figures' : 'Show figures'}
-            </button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Today&apos;s Orders</CardTitle>
-                <Package className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{showStats ? todayOrders.length : '••••'}</div>
-                <p className="text-xs text-muted-foreground">Order tracking below</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Today&apos;s Revenue</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{showStats ? `R${todayRevenue.toFixed(2)}` : 'R••••'}</div>
-                <p className="text-xs text-muted-foreground">From {todayOrders.length} orders</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{showStats ? (vendorOrders?.length ?? 0) : '••••'}</div>
-                <p className="text-xs text-muted-foreground">All time</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Promotions</CardTitle>
-                <Clock className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{showStats ? (promotions?.length ?? 0) : '••••'}</div>
-                <p className="text-xs text-muted-foreground">Active offers</p>
-              </CardContent>
-            </Card>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Today&apos;s Orders</CardTitle>
+              <button onClick={() => setShowTodayOrders(v => !v)} className="text-muted-foreground hover:text-foreground transition-colors">
+                {showTodayOrders ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{showTodayOrders ? todayOrders.length : '••••'}</div>
+              <p className="text-xs text-muted-foreground">Order tracking below</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Today&apos;s Revenue</CardTitle>
+              <button onClick={() => setShowRevenue(v => !v)} className="text-muted-foreground hover:text-foreground transition-colors">
+                {showRevenue ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{showRevenue ? `R${todayRevenue.toFixed(2)}` : '••••'}</div>
+              <p className="text-xs text-muted-foreground">From {todayOrders.length} orders</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+              <button onClick={() => setShowTotalOrders(v => !v)} className="text-muted-foreground hover:text-foreground transition-colors">
+                {showTotalOrders ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{showTotalOrders ? (vendorOrders?.length ?? 0) : '••••'}</div>
+              <p className="text-xs text-muted-foreground">All time</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Promotions</CardTitle>
+              <button onClick={() => setShowPromotions(v => !v)} className="text-muted-foreground hover:text-foreground transition-colors">
+                {showPromotions ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{showPromotions ? (promotions?.length ?? 0) : '••••'}</div>
+              <p className="text-xs text-muted-foreground">Active offers</p>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Restaurant Status */}
