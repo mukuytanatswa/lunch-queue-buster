@@ -41,7 +41,7 @@ serve(async (req) => {
 
     const notificationPayload = JSON.stringify({
       title: 'New order on QuickBite!',
-      body: `${customerName} ordered ${items} item${items !== 1 ? 's' : ''} — R${amount}`,
+      body: `${customerName} ordered ${items} item${items !== 1 ? 's' : ''} R${amount}`,
       data: { vendorId: order.vendor_id, orderId: order.id },
     });
 

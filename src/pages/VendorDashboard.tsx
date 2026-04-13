@@ -260,7 +260,7 @@ const VendorDashboard = () => {
         playOrderSound();
         const amount = payload.new?.total_amount ? `R${Number(payload.new.total_amount).toFixed(2)}` : '';
         toast('New order received!', {
-          description: amount ? `Order total: ${amount} — check your Orders tab.` : 'Check your Orders tab.',
+          description: amount ? `Order total: ${amount}. Check your Orders tab.` : 'Check your Orders tab.',
           duration: Infinity,
           action: { label: 'Dismiss', onClick: () => {} },
         });
