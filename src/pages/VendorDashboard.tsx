@@ -258,8 +258,8 @@ const VendorDashboard = () => {
         event: 'INSERT',
         schema: 'public',
         table: 'orders',
-        filter: `vendor_id=eq.${vendor.id}`,
       }, async (payload) => {
+        if (payload.new?.vendor_id !== vendor.id) return;
         queryClient.invalidateQueries({ queryKey: ['vendor_orders', vendor.id] });
         if (payload.new?.payment_method === 'cash') {
           playOrderSound();
@@ -290,8 +290,8 @@ const VendorDashboard = () => {
         event: 'UPDATE',
         schema: 'public',
         table: 'orders',
-        filter: `vendor_id=eq.${vendor.id}`,
       }, async (payload) => {
+        if (payload.new?.vendor_id !== vendor.id) return;
         queryClient.invalidateQueries({ queryKey: ['vendor_orders', vendor.id] });
         const justPaid = payload.new?.payment_status === 'paid' && payload.old?.payment_status !== 'paid';
         if (justPaid) {
@@ -319,7 +319,9 @@ const VendorDashboard = () => {
           } catch { /* keep generic toast */ }
         }
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[QuickBite] Realtime status:', status);
+      });
     return () => { supabase.removeChannel(channel); };
   }, [vendor?.id, queryClient]);
 
