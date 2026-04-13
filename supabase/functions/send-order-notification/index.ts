@@ -43,19 +43,22 @@ serve(async (req) => {
       .eq('id', order.customer_id)
       .single();
 
-    // Get item count
-    const { count: itemCount } = await supabase
+    // Get item names and quantities
+    const { data: orderItems } = await supabase
       .from('order_items')
-      .select('id', { count: 'exact', head: true })
+      .select('quantity, menu_items(name)')
       .eq('order_id', order.id);
 
     const customerName = profile?.full_name ?? 'A customer';
-    const items = itemCount ?? 1;
-    const amount = Number(order.total_amount ?? 0).toFixed(2);
+    const itemSummary = orderItems
+      ?.slice(0, 2)
+      .map((i: any) => `${i.quantity}x ${i.menu_items?.name}`)
+      .join(', ') ?? 'new order';
+    const extra = (orderItems?.length ?? 0) > 2 ? ` +${orderItems!.length - 2} more` : '';
 
     const notificationPayload = JSON.stringify({
       title: 'New order on QuickBite!',
-      body: `${customerName} ordered ${items} item${items !== 1 ? 's' : ''} R${amount}`,
+      body: `${customerName}: ${itemSummary}${extra}`,
       data: { vendorId: order.vendor_id, orderId: order.id },
     });
 
