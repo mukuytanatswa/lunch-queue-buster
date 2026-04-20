@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
@@ -15,15 +15,17 @@ import { usePlaceOrder } from '@/hooks/useOrders';
 import { usePromotionByCode } from '@/hooks/usePromotions';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { GuestCheckoutModal, GuestInfo } from '@/components/GuestCheckoutModal';
 
 const Cart = () => {
-  const navigate = useNavigate();
   const { items, updateQuantity, removeItem, clearCart, subtotal, serviceFee, totalItems } = useCart();
   const vendorId = items[0]?.vendorId;
 
   const { user, profile } = useAuth();
   const placeOrder = usePlaceOrder();
   const [isCheckoutDialogOpen, setIsCheckoutDialogOpen] = useState(false);
+  const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
+  const [guestInfo, setGuestInfo] = useState<GuestInfo | null>(null);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'payfast' | 'yoco'>('payfast');
@@ -43,14 +45,15 @@ const Cart = () => {
   const total = items.length > 0 ? Math.max(0, subtotal + serviceFee - discount) : 0;
 
   const redirectToPayFast = async (orderId: string) => {
-    const customerName = `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || user?.email || 'Customer';
+    const customerName = `${profile?.first_name || guestInfo?.firstName || ''} ${profile?.last_name || guestInfo?.lastName || ''}`.trim() || user?.email || 'Customer';
+    const customerEmail = user?.email || guestInfo?.email;
     const itemDescription = items.map(i => `${i.quantity}x ${i.name}`).join(', ');
 
     const { data, error } = await supabase.functions.invoke('create-payfast-payment', {
       body: {
         orderId,
         amount: total,
-        customerEmail: user?.email,
+        customerEmail,
         customerName,
         itemDescription: itemDescription.slice(0, 255),
         returnUrl: `${window.location.origin}/orders?payfast=1`,
@@ -129,8 +132,8 @@ const Cart = () => {
 
   const handlePlaceOrder = async () => {
     if (!user) {
-      toast.error('Please sign in to place an order');
-      navigate('/auth');
+      setIsCheckoutDialogOpen(false);
+      setIsGuestModalOpen(true);
       return;
     }
     if (!pickupTime) {
@@ -152,7 +155,7 @@ const Cart = () => {
         quantity: i.quantity,
         unitPrice: i.price,
       })),
-      customerName: `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || user.email || 'Customer',
+      customerName: `${profile?.first_name || guestInfo?.firstName || ''} ${profile?.last_name || guestInfo?.lastName || ''}`.trim() || user.email || guestInfo?.email || 'Customer',
       customerPhone: profile?.phone || undefined,
       subtotal,
       totalAmount: total,
@@ -259,7 +262,7 @@ const Cart = () => {
                 <div className="border-t pt-3 flex justify-between font-semibold"><span>Total</span><span>R{total.toFixed(2)}</span></div>
               </div>
               <Button className="w-full" onClick={() => {
-                if (!user) { navigate('/auth'); toast.error('Please sign in first'); return; }
+                if (!user) { setIsGuestModalOpen(true); return; }
                 setIsCheckoutDialogOpen(true);
               }}>
                 Proceed to Checkout
@@ -271,6 +274,16 @@ const Cart = () => {
           </div>
         </div>
       </main>
+
+      <GuestCheckoutModal
+        open={isGuestModalOpen}
+        onClose={() => setIsGuestModalOpen(false)}
+        onContinue={(info) => {
+          setGuestInfo(info);
+          setIsGuestModalOpen(false);
+          setIsCheckoutDialogOpen(true);
+        }}
+      />
 
       <Dialog open={isCheckoutDialogOpen} onOpenChange={setIsCheckoutDialogOpen}>
         <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col">
