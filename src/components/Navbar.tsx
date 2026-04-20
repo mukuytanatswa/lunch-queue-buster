@@ -70,16 +70,16 @@ const Navbar = () => {
         </nav>
 
         <div className="hidden md:flex items-center space-x-4">
+          {totalItems > 0 && (
+            <Link to="/cart">
+              <Button variant="ghost" size="icon" className="relative">
+                <ShoppingCart className="h-5 w-5" />
+                <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">{totalItems}</span>
+              </Button>
+            </Link>
+          )}
           {user ? (
             <>
-              <Link to="/cart">
-                <Button variant="ghost" size="icon" className="relative">
-                  <ShoppingCart className="h-5 w-5" />
-                  {totalItems > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">{totalItems}</span>
-                  )}
-                </Button>
-              </Link>
               <Link to="/profile">
                 <Button variant="ghost" size="icon"><User className="h-5 w-5" /></Button>
               </Link>
@@ -110,14 +110,16 @@ const Navbar = () => {
                 location.pathname === link.path ? 'bg-primary/10 text-primary' : 'hover:bg-primary/5 text-foreground/80'
               )}>{link.name}</Link>
             ))}
+            {totalItems > 0 && (
+              <Link to="/cart">
+                <Button variant="outline" className="w-full justify-start">
+                  <ShoppingCart className="h-5 w-5 mr-2" />Cart ({totalItems})
+                </Button>
+              </Link>
+            )}
             {user ? (
               <>
                 <div className="pt-2 flex items-center space-x-4">
-                  <Link to="/cart" className="flex-1">
-                    <Button variant="outline" className="w-full justify-start">
-                      <ShoppingCart className="h-5 w-5 mr-2" />Cart ({totalItems})
-                    </Button>
-                  </Link>
                   <Link to="/profile" className="flex-1">
                     <Button variant="outline" className="w-full justify-start">
                       <User className="h-5 w-5 mr-2" />Profile
