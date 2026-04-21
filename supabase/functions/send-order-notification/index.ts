@@ -50,8 +50,9 @@ serve(async (req) => {
     // For updates: handle payment confirmation and order-ready SMS separately
     if (eventType === 'UPDATE') {
       const isPaymentConfirmation = order.payment_status === 'paid' && oldRecord?.payment_status !== 'paid';
-      const isOrderReady = order.status === 'ready' && oldRecord?.status !== 'ready';
+      const isOrderReady = order.status === 'ready';
 
+      console.log('isOrderReady:', isOrderReady, 'phone:', order.customer_phone);
       if (isOrderReady && order.customer_phone) {
         await sendSms(order.customer_phone, `Your QuickBite order is ready for pickup! Head to the vendor now.`);
         return new Response('SMS sent', { status: 200 });
