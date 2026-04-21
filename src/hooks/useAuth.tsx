@@ -22,6 +22,7 @@ interface AuthContextType {
   session: Session | null;
   profile: UserProfile | null;
   loading: boolean;
+  profileLoading: boolean;
   signUp: (email: string, password: string, role: UserRole, firstName?: string, lastName?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signInWithOAuth: (provider: 'google' | 'facebook' | 'twitter' | 'apple') => Promise<{ error: any }>;
@@ -49,9 +50,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(true);
   const { toast } = useToast();
 
   const fetchProfile = async (userId: string) => {
+    setProfileLoading(true);
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -66,6 +69,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setProfile(data);
     } catch {
       // silently fail — user will just not have a profile loaded
+    } finally {
+      setProfileLoading(false);
     }
   };
 
@@ -83,6 +88,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           }, 0);
         } else {
           setProfile(null);
+          setProfileLoading(false);
         }
 
         setLoading(false);
@@ -307,6 +313,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     session,
     profile,
     loading,
+    profileLoading,
     signUp,
     signIn,
     signInWithOAuth,

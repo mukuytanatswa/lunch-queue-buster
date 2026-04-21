@@ -8,18 +8,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Phone } from 'lucide-react';
 
 const Onboarding = () => {
-  const { user, profile, updateProfile } = useAuth();
+  const { user, profile, profileLoading, updateProfile } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [phone, setPhone] = useState('');
 
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
-
-  if (profile?.onboarding_completed) {
-    return <Navigate to="/" replace />;
-  }
+  if (!user) return <Navigate to="/auth" replace />;
+  if (profileLoading) return null;
+  if (profile?.onboarding_completed) return <Navigate to="/" replace />;
 
   const handleComplete = async () => {
     setIsLoading(true);
