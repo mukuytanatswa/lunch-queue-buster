@@ -28,7 +28,7 @@ const Cart = () => {
   const [guestInfo, setGuestInfo] = useState<GuestInfo | null>(null);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [specialInstructions, setSpecialInstructions] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'payfast' | 'yoco'>('payfast');
+  const [paymentMethod] = useState<'payfast'>('payfast');
   const [pickupTime, setPickupTime] = useState('');
   const [promoCodeInput, setPromoCodeInput] = useState('');
   const [appliedPromoCode, setAppliedPromoCode] = useState<string | null>(null);
@@ -176,19 +176,6 @@ const Cart = () => {
       return;
     }
 
-    if (paymentMethod === 'yoco') {
-      try {
-        const order = await placeOrder.mutateAsync({ ...orderPayload, paymentMethod: 'yoco' });
-        toast.info('Redirecting to Yoco...');
-        await redirectToYoco(order.id);
-      } catch (err: unknown) {
-        console.error('[Yoco] Payment error:', err);
-        const msg = err instanceof Error ? err.message : (err as any)?.message ?? 'Failed to initiate Yoco payment';
-        toast.error(msg);
-      }
-      return;
-    }
-
   };
 
   if (items.length === 0 && !orderPlaced) {
@@ -311,27 +298,11 @@ const Cart = () => {
             {/* Payment method */}
             <div className="space-y-2 rounded-lg border border-primary/20 bg-primary/5 p-4">
               <Label className="text-base font-semibold">Payment (ZAR)</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('payfast')}
-                  className={`flex items-center gap-2 text-sm rounded-md border px-3 py-2 transition-colors ${paymentMethod === 'payfast' ? 'border-primary bg-primary/10 font-medium' : 'border-border bg-background'}`}
-                >
-                  <CreditCard className="h-4 w-4 text-[#1a84c0] flex-shrink-0" />
-                  <span>PayFast</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('yoco')}
-                  className={`flex items-center gap-2 text-sm rounded-md border px-3 py-2 transition-colors ${paymentMethod === 'yoco' ? 'border-primary bg-primary/10 font-medium' : 'border-border bg-background'}`}
-                >
-                  <CreditCard className="h-4 w-4 text-[#e3232c] flex-shrink-0" />
-                  <span>Yoco</span>
-                </button>
+              <div className="flex items-center gap-2 text-sm border border-primary bg-primary/10 font-medium rounded-md px-3 py-2">
+                <CreditCard className="h-4 w-4 text-[#1a84c0] flex-shrink-0" />
+                <span>PayFast</span>
               </div>
-              <p className="text-xs text-muted-foreground">
-                {paymentMethod === 'payfast' ? 'Card, EFT or SnapScan via PayFast' : 'Card payment via Yoco'}
-              </p>
+              <p className="text-xs text-muted-foreground">Card, EFT or SnapScan via PayFast</p>
             </div>
 
             {/* Promo code */}
@@ -375,7 +346,7 @@ const Cart = () => {
             <div className="border rounded-md p-4 bg-muted/30">
               <div className="font-medium mb-2">Order Summary</div>
               <div className="text-sm text-muted-foreground space-y-1">
-                <div className="flex justify-between"><span>Payment</span><span>{paymentMethod === 'yoco' ? 'Yoco (online)' : 'PayFast (online)'}</span></div>
+                <div className="flex justify-between"><span>Payment</span><span>PayFast (online)</span></div>
                 {pickupTime && <div className="flex justify-between"><span>Pickup time</span><span>{format(new Date(pickupTime), 'PPp')}</span></div>}
                 <div className="flex justify-between"><span>{totalItems} items</span><span>R{subtotal.toFixed(2)}</span></div>
                 {discount > 0 && <div className="flex justify-between text-green-700"><span>Discount</span><span>−R{discount.toFixed(2)}</span></div>}
@@ -391,7 +362,7 @@ const Cart = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsCheckoutDialogOpen(false)}>Cancel</Button>
             <Button onClick={handlePlaceOrder} disabled={placeOrder.isPending}>
-              {placeOrder.isPending ? 'Processing...' : paymentMethod === 'yoco' ? 'Pay with Yoco' : 'Pay with PayFast'}
+              {placeOrder.isPending ? 'Processing...' : 'Pay with PayFast'}
             </Button>
           </DialogFooter>
         </DialogContent>
