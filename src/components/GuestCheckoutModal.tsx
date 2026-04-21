@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 export interface GuestInfo {
   firstName: string;
   lastName: string;
-  email: string;
+  phone: string;
 }
 
 interface Props {
@@ -21,17 +21,17 @@ interface Props {
 export const GuestCheckoutModal = ({ open, onClose, onContinue }: Props) => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = async () => {
-    if (!firstName.trim() || !lastName.trim() || !email.trim()) {
+    if (!firstName.trim() || !lastName.trim() || !phone.trim()) {
       setError('All fields are required');
       return;
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError('Please enter a valid email address');
+    if (!/^\+?[1-9]\d{6,14}$/.test(phone.replace(/\s/g, ''))) {
+      setError('Please enter a valid phone number (e.g. +27821234567)');
       return;
     }
     setLoading(true);
@@ -42,7 +42,7 @@ export const GuestCheckoutModal = ({ open, onClose, onContinue }: Props) => {
       setLoading(false);
       return;
     }
-    onContinue({ firstName: firstName.trim(), lastName: lastName.trim(), email: email.trim() });
+    onContinue({ firstName: firstName.trim(), lastName: lastName.trim(), phone: phone.trim() });
     setLoading(false);
   };
 
@@ -64,15 +64,15 @@ export const GuestCheckoutModal = ({ open, onClose, onContinue }: Props) => {
             </div>
           </div>
           <div className="space-y-1">
-            <Label>Email</Label>
+            <Label>Phone number</Label>
             <Input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="thabo@example.com"
+              type="tel"
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
+              placeholder="+27821234567"
               onKeyDown={e => e.key === 'Enter' && handleSubmit()}
             />
-            <p className="text-xs text-muted-foreground">We'll send your order confirmation here.</p>
+            <p className="text-xs text-muted-foreground">We'll SMS you when your order is ready.</p>
           </div>
           {error && <p className="text-xs text-destructive">{error}</p>}
         </div>

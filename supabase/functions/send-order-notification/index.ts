@@ -2,6 +2,24 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import webpush from 'npm:web-push';
 
+async function sendSms(to: string, message: string) {
+  const apiKey = Deno.env.get('AT_API_KEY');
+  const username = Deno.env.get('AT_USERNAME');
+  if (!apiKey || !username) {
+    console.warn('Africa\'s Talking credentials not set — skipping SMS');
+    return;
+  }
+  const body = new URLSearchParams({ username, to, message });
+  const res = await fetch('https://api.africastalking.com/version1/messaging', {
+    method: 'POST',
+    headers: { apiKey, Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: body.toString(),
+  });
+  if (!res.ok) {
+    console.error('SMS failed:', await res.text());
+  }
+}
+
 serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -29,9 +47,17 @@ serve(async (req) => {
       return new Response('Skipping — awaiting payment', { status: 200 });
     }
 
-    // For updates: only notify when payment_status flips to 'paid'
+    // For updates: handle payment confirmation and order-ready SMS separately
     if (eventType === 'UPDATE') {
-      if (order.payment_status !== 'paid' || oldRecord?.payment_status === 'paid') {
+      const isPaymentConfirmation = order.payment_status === 'paid' && oldRecord?.payment_status !== 'paid';
+      const isOrderReady = order.status === 'ready' && oldRecord?.status !== 'ready';
+
+      if (isOrderReady && order.customer_phone) {
+        await sendSms(order.customer_phone, `Your QuickBite order is ready for pickup! Head to the vendor now.`);
+        return new Response('SMS sent', { status: 200 });
+      }
+
+      if (!isPaymentConfirmation) {
         return new Response('Skipping — not a payment confirmation', { status: 200 });
       }
     }
