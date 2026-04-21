@@ -48,8 +48,8 @@ serve(async (req) => {
       cancelUrl,
     } = await req.json();
 
-    if (!orderId || !amount || !customerEmail) {
-      return new Response(JSON.stringify({ error: 'orderId, amount and customerEmail are required' }), {
+    if (!orderId || !amount) {
+      return new Response(JSON.stringify({ error: 'orderId and amount are required' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -89,7 +89,7 @@ serve(async (req) => {
       notify_url: notifyUrl,
       name_first: firstName,
       name_last: lastName,
-      email_address: customerEmail,
+      ...(customerEmail ? { email_address: customerEmail } : {}),
       m_payment_id: orderId,
       amount: Number(amount).toFixed(2),
       item_name: 'QuickBite Order',
