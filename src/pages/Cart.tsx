@@ -383,6 +383,11 @@ const Cart = () => {
               </div>
             </div>
           </div>
+          {(guestInfo?.phone || profile?.phone) && paymentMethod === 'payfast' && (
+            <p className="text-xs text-muted-foreground text-center pb-2">
+              Your phone number will be pre-filled on the PayFast page — keep it as is so we can SMS you when your order is ready.
+            </p>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsCheckoutDialogOpen(false)}>Cancel</Button>
             <Button onClick={handlePlaceOrder} disabled={placeOrder.isPending}>
