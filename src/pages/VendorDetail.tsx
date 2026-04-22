@@ -113,7 +113,8 @@ const VendorDetail = () => {
             </div>
           )}
 
-          <h2 className="text-2xl font-bold mb-4">Menu</h2>
+          <h2 className="text-2xl font-bold mb-1">Menu</h2>
+          <p className="text-xs text-muted-foreground mb-4">Images are for illustration purposes only.</p>
 
           {menuLoading && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
