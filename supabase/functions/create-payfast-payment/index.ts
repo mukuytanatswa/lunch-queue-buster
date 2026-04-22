@@ -11,13 +11,24 @@ function md5(text: string): string {
   return createHash('md5').update(text).digest('hex');
 }
 
+function phpUrlencode(str: string): string {
+  return encodeURIComponent(str)
+    .replace(/!/g, '%21')
+    .replace(/'/g, '%27')
+    .replace(/\(/g, '%28')
+    .replace(/\)/g, '%29')
+    .replace(/\*/g, '%2A')
+    .replace(/~/g, '%7E')
+    .replace(/%20/g, '+');
+}
+
 function buildParamString(params: Record<string, string>, passphrase?: string): string {
   const parts = Object.entries(params)
     .filter(([, v]) => v !== '' && v != null)
-    .map(([k, v]) => `${k}=${encodeURIComponent(v.trim()).replace(/%20/g, '+')}`)
+    .map(([k, v]) => `${k}=${phpUrlencode(v.trim())}`)
     .join('&');
   return passphrase
-    ? `${parts}&passphrase=${encodeURIComponent(passphrase.trim()).replace(/%20/g, '+')}`
+    ? `${parts}&passphrase=${phpUrlencode(passphrase.trim())}`
     : parts;
 }
 
@@ -97,7 +108,9 @@ serve(async (req) => {
     };
 
     const paramString = buildParamString(params, passphrase || undefined);
+    console.log('[PayFast] param string:', paramString);
     const signature = md5(paramString);
+    console.log('[PayFast] signature:', signature);
 
     return new Response(JSON.stringify({ payfast_url: payfastUrl, params: { ...params, signature } }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
