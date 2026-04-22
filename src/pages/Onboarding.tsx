@@ -2,16 +2,11 @@ import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Phone } from 'lucide-react';
-
 const Onboarding = () => {
   const { user, profile, profileLoading, updateProfile } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-  const [phone, setPhone] = useState('');
 
   if (!user) return <Navigate to="/auth" replace />;
   if (profileLoading) return null;
@@ -19,7 +14,7 @@ const Onboarding = () => {
 
   const handleComplete = async () => {
     setIsLoading(true);
-    await updateProfile({ phone, onboarding_completed: true });
+    await updateProfile({ onboarding_completed: true });
     setIsLoading(false);
     navigate('/');
   };
@@ -38,21 +33,6 @@ const Onboarding = () => {
               <p className="text-sm text-muted-foreground">
                 You're signed up as a <span className="font-medium capitalize">{profile?.role}</span>
               </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="phone"
-                  type="tel"
-                  placeholder="+27 71 234 5678"
-                  className="pl-10"
-                  value={phone}
-                  onChange={e => setPhone(e.target.value)}
-                />
-              </div>
             </div>
 
             <div className="flex gap-3">
