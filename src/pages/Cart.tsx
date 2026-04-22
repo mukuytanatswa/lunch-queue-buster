@@ -141,9 +141,9 @@ const Cart = () => {
       return;
     }
     const scheduled = new Date(pickupTime);
-    const minTime = new Date(Date.now() + 30 * 60 * 1000);
+    const minTime = new Date(Date.now() + 10 * 60 * 1000);
     if (scheduled < minTime) {
-      toast.error('Pickup time must be at least 30 minutes from now');
+      toast.error('Pickup time must be at least 10 minutes from now');
       return;
     }
 
@@ -289,9 +289,9 @@ const Cart = () => {
                 type="datetime-local"
                 value={pickupTime}
                 onChange={e => setPickupTime(e.target.value)}
-                min={new Date(Date.now() + 30 * 60 * 1000).toISOString().slice(0, 16)}
+                min={new Date(Date.now() + 10 * 60 * 1000).toISOString().slice(0, 16)}
               />
-              <p className="text-xs text-amber-700">Must be at least 30 minutes from now. You will collect your order at the vendor.</p>
+              <p className="text-xs text-amber-700">Must be at least 10 minutes from now. You will collect your order at the vendor.</p>
             </div>
 
             {/* Payment method */}

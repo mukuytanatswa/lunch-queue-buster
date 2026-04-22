@@ -148,9 +148,9 @@ const GroupOrder = () => {
   const handlePlaceGroupOrder = async () => {
     if (!user || !groupOrder || !canPlaceGroupOrder) return;
     const scheduled = new Date(pickupTime);
-    const minTime = new Date(Date.now() + 30 * 60 * 1000);
+    const minTime = new Date(Date.now() + 10 * 60 * 1000);
     if (scheduled < minTime) {
-      toast.error('Pickup time must be at least 30 minutes from now');
+      toast.error('Pickup time must be at least 10 minutes from now');
       return;
     }
     setIsPlacing(true);
@@ -398,10 +398,10 @@ const GroupOrder = () => {
                           type="datetime-local"
                           value={pickupTime}
                           onChange={e => setPickupTime(e.target.value)}
-                          min={new Date(Date.now() + 30 * 60 * 1000).toISOString().slice(0, 16)}
+                          min={new Date(Date.now() + 10 * 60 * 1000).toISOString().slice(0, 16)}
                           className="bg-white"
                         />
-                        <p className="text-xs text-amber-700">Min 30 minutes from now. Everyone collects at the vendor.</p>
+                        <p className="text-xs text-amber-700">Min 10 minutes from now. Everyone collects at the vendor.</p>
                       </div>
 
                       {/* Payment method */}
