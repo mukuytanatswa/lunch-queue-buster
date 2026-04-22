@@ -116,7 +116,6 @@ interface PlaceOrderInput {
   vendorId: string;
   items: { menuItemId: string; name: string; quantity: number; unitPrice: number }[];
   customerName: string;
-  customerPhone?: string;
   subtotal: number;
   totalAmount: number;
   paymentMethod?: 'payfast' | 'payshap' | 'yoco';
@@ -143,7 +142,6 @@ export const usePlaceOrder = () => {
           customer_id: user.id,
           vendor_id: input.vendorId,
           customer_name: input.customerName,
-          customer_phone: input.customerPhone,
           delivery_address: null,
           subtotal: input.subtotal,
           delivery_fee: 0,

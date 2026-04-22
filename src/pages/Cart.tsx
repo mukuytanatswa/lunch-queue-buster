@@ -47,7 +47,6 @@ const Cart = () => {
   const redirectToPayFast = async (orderId: string) => {
     const customerName = `${profile?.first_name || guestInfo?.firstName || ''} ${profile?.last_name || guestInfo?.lastName || ''}`.trim() || user?.email || 'Customer';
     const customerEmail = user?.email || '';
-    const customerPhone = profile?.phone || guestInfo?.phone || '';
     const itemDescription = items.map(i => `${i.quantity}x ${i.name}`).join(', ');
 
     const { data, error } = await supabase.functions.invoke('create-payfast-payment', {
@@ -55,7 +54,6 @@ const Cart = () => {
         orderId,
         amount: total,
         customerEmail,
-        customerPhone,
         customerName,
         itemDescription: itemDescription.slice(0, 255),
         returnUrl: `${window.location.origin}/orders?payfast=1`,
@@ -158,7 +156,6 @@ const Cart = () => {
         unitPrice: i.price,
       })),
       customerName: `${profile?.first_name || guestInfo?.firstName || ''} ${profile?.last_name || guestInfo?.lastName || ''}`.trim() || user.email || 'Customer',
-      customerPhone: profile?.phone || guestInfo?.phone || undefined,
       subtotal,
       totalAmount: total,
       scheduledFor: pickupTime,
